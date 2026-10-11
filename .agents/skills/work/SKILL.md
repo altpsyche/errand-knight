@@ -62,8 +62,9 @@ workflow here; the steps below are the glue the skills themselves do not do. Com
    in `Closes #<n>`. When the PR closes no issue, review the Spec axis against the PR body, say so
    in the report, and flag the missing issue as a finding; do not stop to ask.
 2. **Post the report** on the PR as a comment. A finding that stays in the chat does not exist.
-3. **Set the state**: swap `status:in-review` for `status:changes-requested` or `status:approved`.
-   Never push to the branch.
+3. **Set the state**: swap `status:in-review` for `status:approved` only when no finding is open.
+   Any finding, however minor, means `status:changes-requested`; see the verdict rule in
+   [`docs/workflow.md`](../../../docs/workflow.md) § 3. Never push to the branch.
 
 **Planner** → `/grill-with-docs`, then `/to-spec` and `/to-tickets`.
 

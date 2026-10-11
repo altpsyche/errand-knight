@@ -25,7 +25,7 @@ the GitHub issue wins.
   `Closes #<number>` so merging closes the issue.
 - **Post a review**: `gh pr comment <number> --body-file <file>`, then
   `gh pr edit <number> --remove-label status:in-review --add-label status:changes-requested` (or
-  `status:approved`). GitHub forbids approving your own PR and every session is the owner's account,
+  `status:approved` when the report has zero open findings). GitHub forbids approving your own PR and every session is the owner's account,
   so the label, not a GitHub review, carries the verdict.
 - **Return a PR for review** after a fix round: reply to the review with a comment that answers
   each finding (fixed in `<sha>`, or disputed with a source), then

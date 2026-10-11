@@ -67,14 +67,22 @@ by side:
 - **Standards** — does the diff follow `AGENTS.md`, `docs/workflow.md`'s checklist below, and the ADRs?
 - **Spec** — does it faithfully implement the originating spec, no more and no less?
 
-The reviewer posts the report as a PR comment and sets `status:changes-requested` or `status:approved`;
-it does not push to the branch. Every finding names its source and quotes the line it is about. The
-Implementer's own `/review-pr` run at the end of `/implement` is a self-check, not this step.
+The reviewer posts the report as a PR comment and sets the verdict; it does not push to the branch.
+Every finding names its source and quotes the line it is about. The Implementer's own `/review-pr` run
+at the end of `/implement` is a self-check, not this step.
+
+**The verdict is strict.** `status:approved` means the report has zero open findings. Any finding at
+all, including a judgement call, a low-severity edge case or a nit, sets `status:changes-requested`.
+There is no "non-blocking" finding and no "approve, but consider…": a finding worth writing down is
+worth a fix round. Severity orders the list; it does not decide the verdict. On a re-review, every
+earlier finding is either fixed or closed by a dispute the reviewer accepted, and the new diff is
+reviewed in full, so new findings start another round.
 
 ### 4. Fix rounds
 
-The implementer addresses findings on the same branch. A finding may be disputed, with a reason and a
-source; "it works" is not a dispute. Scope creep found in review becomes a new ticket, not a bigger diff.
+The implementer addresses every finding on the same branch, whatever its severity. A finding may be
+disputed, with a reason and a source; "it works" and "it is minor" are not disputes. The reviewer either
+accepts the dispute, which closes the finding, or holds it, which keeps the PR in changes requested. Scope creep found in review becomes a new ticket, not a bigger diff.
 When the round is done, swap `status:changes-requested` back to `status:in-review`.
 
 ### 5. Merge and learn (Owner)
