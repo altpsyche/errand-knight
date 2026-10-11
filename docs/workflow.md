@@ -83,8 +83,12 @@ reviewed in full, so new findings start another round.
 
 The implementer addresses every finding on the same branch, whatever its severity. A finding may be
 disputed, with a reason and a source; "it works" and "it is minor" are not disputes. The reviewer either
-accepts the dispute, which closes the finding, or holds it, which keeps the PR in changes requested. Scope creep found in review becomes a new ticket, not a bigger diff.
-When the round is done, swap `status:changes-requested` back to `status:in-review`.
+accepts the dispute, which closes the finding, or holds it, which keeps the PR in changes requested.
+Scope creep found in review becomes a new ticket, not a bigger diff.
+
+When the round is done, post one PR comment that answers each finding: fixed in `<sha>`, naming the
+test for a behaviour change, or disputed with a reason and a source. Then swap
+`status:changes-requested` back to `status:in-review`.
 
 ### 5. Merge and learn (Owner)
 

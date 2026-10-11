@@ -54,10 +54,9 @@ workflow here; the steps below are the glue the skills themselves do not do. Com
    self-check: fix what it finds, but it is not the review. A review by the author is not a review.
 4. **Open the PR**: push, then create it with a body written by `/pr` that contains `Closes #<n>`,
    and label it `status:in-review`. Without that label no Reviewer will find it.
-5. **Fix round**, when the item is a `status:changes-requested` PR: check it out, address every
-   finding on the same branch per [`docs/workflow.md`](../../../docs/workflow.md) § 4, then return
-   it for review: one comment answering each finding (fixed in `<sha>`, or disputed with a source),
-   and the label swapped back to `status:in-review`.
+5. **Fix round**, when the item is a `status:changes-requested` PR: check it out, then run
+   [`docs/workflow.md`](../../../docs/workflow.md) § 4 on the same branch, through the answering
+   comment and the label swap. Without that label no Reviewer will find it.
 
 **Reviewer** — a session that did not write the diff.
 
