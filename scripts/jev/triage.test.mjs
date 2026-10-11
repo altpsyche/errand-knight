@@ -243,3 +243,13 @@ test('a triage table row outside the five canonical roles is an error, not silen
     assert.equal(client.calls.length, 0);
   });
 });
+
+test('the CLI takes the first non-blank stdin line as the title', async () => {
+  // A dead base URL: the request fails with a connection error, which proves the issue got past the
+  // no-title guard (and that nothing reached Jev).
+  const env = { TYPESAFE_API_KEY: 'dummy-key', TYPESAFE_BASE_URL: 'http://127.0.0.1:9' };
+  const { status, stdout } = await runCli([], { env, stdin: '\n\nSome title\nbody\n' });
+  assert.equal(status, 0);
+  assert.match(stdout, /^jev triage: error, [^\n]*\n$/);
+  assert.doesNotMatch(stdout, /no title/);
+});
