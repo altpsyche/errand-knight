@@ -41,7 +41,7 @@ Fix the stale source in the same commit, or say plainly that you did not.
 ```bash
 pnpm verify           # everything CI runs
 pnpm skills:check     # skill frontmatter, doc links, CLAUDE.md symlink, under a second
-pnpm scripts:test     # tests for the checker itself
+pnpm scripts:test     # tests for the checker and the Jev tools (scripts/jev/)
 ```
 
 **Prefer running these over reasoning about whether your change is correct.** Phase 0 extends
