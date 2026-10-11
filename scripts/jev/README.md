@@ -6,7 +6,7 @@ thinking model does not spend tokens on them. Dev tooling only, never app code
 
 | File | What it is |
 |---|---|
-| `constants.mjs` | The pinned model id and **every threshold**. Tune them here, in one reviewed edit |
+| `constants.mjs` | The pinned model id, **every threshold**, and Jev's context limits. Tune them here, in one reviewed edit |
 | `client.mjs` | The shared client: `available()` checks the key and SDK without a request, `ask()` makes one request, and neither throws. Also `errorLine`, the one redacting error-to-line helper every tool and CLI uses |
 | `triage.mjs` | The triage helper, `run(input, { client, root })`. `root` is the repo root the docs are read from; it defaults to this repo, and tests point it at a temp tree |
 | `triage-cli.mjs` | Its CLI |
@@ -14,6 +14,10 @@ thinking model does not spend tokens on them. Dev tooling only, never app code
 | `prune.mjs` | The doc pruner, `run(input, { client, root })`, with `root` as in the triage helper |
 | `prune-cli.mjs` | Its CLI |
 | `prune.test.mjs` | Tests at its `run()` seam over a git repo built in a temp dir, plus CLI runs with a `gh` stub and a fake Jev server on localhost |
+| `verify.mjs` | The finding verifier, `run(input, { client, root })`, and `human(result)`, the CLI's default output. `root` is the repo root the review checklist is read from |
+| `verify-cli.mjs` | Its CLI |
+| `verify.test.mjs` | Tests at the `run()` seam with a fake client, plus CLI runs as a subprocess; run by `pnpm scripts:test` |
+| `fixtures/findings.sample.json` | A sample findings file in the input format, for a live check and as a template |
 
 ## Triage helper
 
@@ -130,20 +134,103 @@ reason `oversize`. All the limits live in `constants.mjs`.
 If git or `docs/idea.md` cannot be read, or Jev leaves a unit unanswered, the tool prints an error
 line and exits 0, and the agent reads the docs as it would without the tool.
 
+## Finding verifier
+
+Checks a Reviewer's draft findings before the report is posted: does each finding's quoted line,
+read against its cited source, support it? Each finding comes back with a decision:
+
+- **keep** — Jev's Noul (the probability that the source supports the finding) is at or above
+  `VERIFY_FLAG_BELOW` (0.5).
+- **flag** — below it. Re-read the cited source once, then keep or drop the finding yourself. The
+  tool never removes a finding.
+
+Two kinds of finding are kept without asking Jev, so they are never flagged:
+
+- **Constitution findings** — the `source` mentions "constitution", or the `excerpt` quotes one of
+  the bullets under **The constitution** in [`docs/workflow.md`](../../docs/workflow.md)'s review
+  checklist whole. The bullets are read from that doc on every run; if the section is gone, the
+  tool prints an error line rather than run without the exemption. Nothing else is recognised: a
+  constitution finding cited only through `AGENTS.md` or a partial quote is checked like any
+  other, so cite one as `docs/workflow.md § Review checklist, The constitution`. A Reviewer never
+  drops a constitution-level finding on a flag alone, however it was cited.
+- **Too large to check** — a finding whose own text, quote and excerpt overflow one request.
+
+How the Reviewer uses it is in [`docs/workflow.md`](../../docs/workflow.md) § 3 and the Reviewer
+steps of [`/work`](../../.agents/skills/work/SKILL.md).
+
+### Input
+
+A JSON array of findings, from a file or stdin. Every field but `id` is a non-empty string:
+
+```json
+[
+  {
+    "id": "F1",
+    "text": "The finding, as the report states it.",
+    "quote": "the line under review the finding is about",
+    "source": "docs/workflow.md § Review checklist, The constitution",
+    "excerpt": "The text of the cited source the finding relies on."
+  }
+]
+```
+
+`id` is optional and defaults to `F1`, `F2`, … by position; ids must be unique. `source` names
+the rule or spec the finding cites (a doc and section, an ADR, the issue) and `excerpt` is the
+relevant text of it, copied. [`fixtures/findings.sample.json`](fixtures/findings.sample.json) is a
+sample to copy and to make a live check with. Its findings are illustrative: F1's source supports
+it (expect `keep`), F2 quotes a real line that does not show what it claims (expect `flag`), and
+F3 cites the constitution. An empty input, a value that is not an array, or a finding that is not
+an object, has a blank field or repeats an id is an error line naming the first problem, and
+nothing is sent: fix that finding and run again.
+
+```bash
+node scripts/jev/verify-cli.mjs findings.json           # one line per finding
+node scripts/jev/verify-cli.mjs findings.json --json    # one JSON object instead
+node scripts/jev/verify-cli.mjs < findings.json         # from stdin
+pnpm run --silent jev:verify findings.json              # the same, through pnpm
+```
+
+Default output, one line per finding in input order:
+
+```text
+F1: keep (noul 0.92)
+F2: flag (noul 0.31) - re-read the cited source once, then keep or drop the finding
+F3: keep (cites the constitution, never flagged)
+F4: keep (too large to check)
+```
+
+`--json` prints `{ status: "ok", findings }`, where each finding is
+`{ id, decision: "keep" | "flag", noul, reason: "checked" | "constitution" | "too-large" }` and
+`noul` is `null` unless the reason is `checked`; or `{ status: "skipped" | "error", reason }`.
+
+### Requests
+
+Jev's state is the batch's findings, keyed `f<n>` by their position `n` in the whole input (so a
+batch's keys need not start at `f1`), each with its `text`, `quote`, `source`
+and `excerpt`; each finding gets one Noul question that names its own key. Findings are packed
+first-fit into as few requests as Jev's two context limits allow (`docs.typesafe.ai/models`): 64k
+tokens for the state plus every question, and 32k for the state plus the longest question. Both
+limits and `JEV_CHARS_PER_TOKEN`, the conservative characters-per-token estimate used to size a
+request before sending it, are in `constants.mjs`, shared with the doc pruner. If any request
+fails, the whole run is one error line: the Reviewer never gets half the findings checked.
+
 ## Skip behaviour
 
 Every tool is optional. Without `TYPESAFE_API_KEY` in the environment, or without the SDK
 installed (`pnpm install` not run), it makes no request, prints one line and exits 0. The client's
-`available()` checks both before any other work, so a keyless run never calls `gh` or reads a doc:
+`available()` checks both before any other work, so a keyless run never calls `gh`, reads a doc
+or reads its input:
 
 ```text
 jev triage: skipped, TYPESAFE_API_KEY is not set; triage as normal
 jev prune: skipped, TYPESAFE_API_KEY is not set; read the docs as normal
+jev verify: skipped, TYPESAFE_API_KEY is not set; continue as normal
 ```
 
 Any other failure prints one `jev <tool>: error, …` line and also exits 0: network, an API error,
-`gh` failing, a doc that no longer parses, or an issue with no title (such as empty stdin), which
-is never sent to Jev. Nothing here fails the caller's workflow; the caller carries on as it would
+`gh` failing, a doc that no longer parses, or input that is never sent to Jev because it is empty
+or malformed (an issue with no title, such as empty stdin, or a findings file that is not a JSON
+array of complete findings). Nothing here fails the caller's workflow; the caller carries on as it would
 without the tool. The key comes from the owner's shell only
 ([`docs/dev_setup.md`](../../docs/dev_setup.md) § The TypeSafe dev key) and is never printed.
 

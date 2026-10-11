@@ -11,6 +11,9 @@ export const TRIAGE_APPLY_CONFIDENCE = 0.8;
 /** The pruner puts a doc on the read list at a Noul (probability it is relevant) at or above this. */
 export const PRUNE_INCLUDE_NOUL = 0.2;
 
+/** The verifier flags a finding when Jev's Noul (probability its source supports it) is below this. */
+export const VERIFY_FLAG_BELOW = 0.5;
+
 // Jev's context limits, per the TypeSafe docs as of 2026-10-11: a request holds at most 64k tokens,
 // and its longest single question plus `state` at most 32k.
 export const JEV_REQUEST_TOKENS = 64_000;
