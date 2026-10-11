@@ -26,7 +26,7 @@ Read [`docs/agents/issue-tracker.md`](../../../docs/agents/issue-tracker.md) for
 Then apply the role's frontier:
 
 - **Implementer** — open issues labelled `ready-for-agent`, oldest first, with no open blocker
-  and no assignee. Claim the winner as your first write.
+  and no assignee.
 - **Reviewer** — open PRs labelled `status:in-review`, oldest first.
 - **Planner** — the earliest unfinished Phase in [`docs/idea.md`](../../../docs/idea.md) § Roadmap.
 
@@ -40,11 +40,22 @@ If the frontier is empty, say so plainly and propose the most useful thing to do
 ## 3. Run it
 
 Hand off to the skill the role's step names in `docs/workflow.md`. Do not re-implement the
-workflow here.
+workflow here; the steps below are the glue the skills themselves do not do. Commands are in
+[`docs/agents/issue-tracker.md`](../../../docs/agents/issue-tracker.md).
 
-- Implementer → `/implement`, driving `/tdd` at seams agreed up front, closing with `/review-pr`.
-- Reviewer → `/review-pr`.
-- Planner → `/grill-with-docs`, then `/to-spec` and `/to-tickets`.
+**Implementer**
+
+1. **Claim**, as the first write after confirmation: assign yourself and comment
+   `Claimed: branch <n>-<slug>`. Every session runs as the owner's account, so the comment, not
+   the assignee, is what tells two sessions apart.
+2. **Branch** from an up-to-date `main` as `<n>-<slug>`. Never commit to `main`.
+3. `/implement`, driving `/tdd` at the seams agreed up front.
+4. **Open the PR**: push, then create it with a body written by `/pr` that contains `Closes #<n>`,
+   and label it `status:in-review`. Without that label no Reviewer will find it.
+
+**Reviewer** → `/review-pr`.
+
+**Planner** → `/grill-with-docs`, then `/to-spec` and `/to-tickets`.
 
 ## 4. Close out
 

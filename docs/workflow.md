@@ -46,16 +46,18 @@ has confirmed the spec's testing seams.
 
 ### 2. Implement (Implementer) — `/implement`
 
-Claim the ticket as the first write, so two sessions never collide. Read the ADRs that touch the area.
-Then drive `/tdd` at the seams agreed during planning.
+Claim the ticket as the first write, so two sessions never collide, then branch as `<n>-<slug>`; nothing
+is committed to `main`. Read the ADRs that touch the area. Then drive `/tdd` at the seams agreed during
+planning.
 
 - Red before green. One slice at a time: one test, one minimal implementation, repeat.
 - `pnpm verify` runs regularly, and once more at the end.
 - Run the app for anything user-visible. A green suite is not evidence a window rendered.
 - Commit to the branch; one concern per commit.
 
-**Done when:** the ticket's own acceptance criteria pass, `pnpm verify` is green, and every source you
-made stale is corrected in the same commit.
+**Done when:** the ticket's own acceptance criteria pass, `pnpm verify` is green, every source you
+made stale is corrected in the same commit, and a PR whose body says `Closes #<n>` is open and labelled
+`status:in-review`.
 
 ### 3. Review (Reviewer) — `/review-pr`
 

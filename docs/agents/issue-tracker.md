@@ -17,6 +17,12 @@ the GitHub issue wins.
 - **Comment**: `gh issue comment <number> --body "..."`
 - **Label**: `gh issue edit <number> --add-label "..."` / `--remove-label "..."`
 - **Close**: `gh issue close <number> --comment "..."`
+- **Claim**: `gh issue edit <number> --add-assignee @me` then
+  `gh issue comment <number> --body "Claimed: branch <number>-<slug>"`. Every session shares the
+  owner's account, so the comment is the claim; the assignee only hides the issue from the frontier.
+- **Open a PR**: `git push -u origin HEAD` then
+  `gh pr create --title "..." --body-file <file> --label status:in-review`. The body contains
+  `Closes #<number>` so merging closes the issue.
 
 `gh` infers the repo from `git remote -v` when run inside the clone.
 
