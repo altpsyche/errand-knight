@@ -8,7 +8,7 @@ import { mkdtemp, mkdir, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { checkRepo, insideRoot, relativeLinks } from './check-skills.mjs';
+import { checkRepo, insideRoot, parseFrontmatter, relativeLinks } from './check-skills.mjs';
 
 const SKILL = `---
 name: demo
@@ -230,4 +230,13 @@ test('block-scalar headers with an indentation indicator or a comment are read',
       assert.deepEqual({ header, errors, warnings }, { header, errors: [], warnings: [] });
     });
   }
+});
+
+test('blank lines inside a block scalar are kept: `|` as breaks, `>` as folded breaks', () => {
+  const read = (header) =>
+    parseFrontmatter(`---\ndescription: ${header}\n  one\n  two\n\n  three\n\n\n  four\nname: demo\n---\n`, 'x', {
+      err: assert.fail,
+    }).description;
+  assert.equal(read('|'), 'one\ntwo\n\nthree\n\n\nfour');
+  assert.equal(read('>'), 'one two\nthree\n\nfour');
 });

@@ -28,10 +28,22 @@ const KNOWN_FRONTMATTER_KEYS = new Set([
 // order, then an optional comment, as in `>`, `|-`, `>2`, `|+1` or `> # note`.
 const BLOCK_HEADER = /^([|>])(?:[1-9][+-]?|[+-][1-9]?)?(?:[ \t]+#.*)?$/;
 
+// YAML line folding for a `>` block: a break between two text lines becomes a space, and each
+// blank line becomes a break. More-indented lines are not special-cased: the reader trims indentation.
+function fold(lines) {
+  let out = '';
+  lines.forEach((line, i) => {
+    if (line === '') out += '\n';
+    else out += (i > 0 && lines[i - 1] !== '' ? ' ' : '') + line;
+  });
+  return out;
+}
+
 // Minimal YAML frontmatter reader. Handles the flat `key: value` shape these skills use, block
-// scalars (`|` keeps line breaks, `>` folds them to spaces), and nested maps, which it skips rather
-// than mis-parses.
-function parseFrontmatter(source, label, { err }) {
+// scalars (`|` keeps line breaks and blank lines, `>` folds them as `fold` does; indentation and
+// surrounding blank lines are trimmed), and nested maps, which it skips rather than mis-parses.
+// Exported for check-skills.test.mjs.
+export function parseFrontmatter(source, label, { err }) {
   if (!source.startsWith('---\n') && !source.startsWith('---\r\n')) {
     err(`${label}: missing YAML frontmatter (file must start with ---)`);
     return null;
@@ -46,11 +58,11 @@ function parseFrontmatter(source, label, { err }) {
   let currentKey = null;
   let block = null; // the style and lines of the block scalar being read, if any
   const endBlock = () => {
-    if (block) fields[block.key] = block.lines.join(block.style === '>' ? ' ' : '\n').trim();
+    if (block) fields[block.key] = (block.style === '>' ? fold(block.lines) : block.lines.join('\n')).trim();
     block = null;
   };
   for (const line of raw.split('\n')) {
-    if (block && /^\s+\S/.test(line)) {
+    if (block && (/^\s+\S/.test(line) || !line.trim())) {
       block.lines.push(line.trim());
       continue;
     }
