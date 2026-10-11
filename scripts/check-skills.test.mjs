@@ -137,3 +137,25 @@ test('running the checker through a symlinked path still runs it', async () => {
     await rm(dir, { recursive: true, force: true });
   }
 });
+
+test('reference-style link definitions are extracted', () => {
+  assert.deepEqual(relativeLinks('See [doc][d].\n\n[d]: ./missing-ref.md\n'), ['./missing-ref.md']);
+  assert.deepEqual(relativeLinks('[d]: <./spaced ref.md> "Title"\n'), ['./spaced ref.md']);
+  assert.deepEqual(relativeLinks('[^1]: A footnote, not a link.\n'), []);
+});
+
+test('angle-bracket link targets are extracted', () => {
+  assert.deepEqual(relativeLinks('[a](<./with space.md>)\n'), ['./with space.md']);
+});
+
+test('a longer fence is not closed by a shorter fence inside it', () => {
+  const md = '````md\n```\n[x](./inner.md)\n```\n[y](./after-inner.md)\n````\n[z](./real.md)\n';
+  assert.deepEqual(relativeLinks(md), ['./real.md']);
+});
+
+test('a broken link in any root-level markdown file is reported', () =>
+  withRepo(async (root) => {
+    await writeFile(path.join(root, 'GLOSSARY.md'), '[gone](./nope.md)\n');
+    const { errors } = await checkRepo(root);
+    assert.deepEqual(errors, ['GLOSSARY.md: broken relative link -> ./nope.md']);
+  }));

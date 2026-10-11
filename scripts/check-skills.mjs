@@ -66,12 +66,19 @@ function parseFrontmatter(source, label, { err }) {
 }
 
 // Collect relative link targets from markdown, ignoring anything with a scheme, a bare anchor, or a
-// template placeholder. Fenced and inline code are stripped first: links there are examples.
+// template placeholder. Fenced and inline code are stripped first: links there are examples. A fence
+// closes only on a run at least as long as its opener, so a ```` fence can show a ``` example.
+// Both inline links, `[a](target)` or `[a](<target>)`, and reference definitions, `[a]: target`, count.
+const FENCE = /^[ \t]*(`{3,}|~{3,})[^\n]*\n[\s\S]*?^[ \t]*\1[`~]*[ \t]*$/gm;
+const INLINE_LINK = /\[[^\]]*\]\((?:<([^>\n]+)>|([^)\s]+))(?:\s+"[^"]*")?\)/g;
+const REFERENCE_DEFINITION = /^[ \t]{0,3}\[(?!\^)[^\]]+\]:[ \t]*(?:<([^>\n]+)>|(\S+))/gm;
+
 export function relativeLinks(markdown) {
   const out = [];
-  const prose = markdown.replace(/^[ \t]*(```|~~~)[^\n]*\n[\s\S]*?^[ \t]*\1[^\n]*$/gm, '').replace(/`[^`\n]*`/g, '');
-  for (const match of prose.matchAll(/\[[^\]]*\]\(([^)\s]+)(?:\s+"[^"]*")?\)/g)) {
-    const target = match[1];
+  const prose = markdown.replace(FENCE, '').replace(/`[^`\n]*`/g, '');
+  const matches = [...prose.matchAll(INLINE_LINK), ...prose.matchAll(REFERENCE_DEFINITION)];
+  for (const match of matches) {
+    const target = match[1] ?? match[2];
     if (/^[a-z][a-z0-9+.-]*:/i.test(target)) continue;
     if (target.startsWith('#')) continue;
     out.push(target.split('#')[0]);
@@ -200,9 +207,14 @@ export async function checkRepo(root) {
     err(`CLAUDE.md points at "${await readlink(claudeMd)}", not AGENTS.md`);
   }
 
+  // Every root-level .md (AGENTS.md, README.md, and GLOSSARY.md or CODING_STANDARDS.md once a skill
+  // creates them), plus everything under docs/ and the skills. CLAUDE.md is a symlink, so it is skipped.
+  const rootDocs = (await readdir(root, { withFileTypes: true }))
+    .filter((e) => e.isFile() && e.name.endsWith('.md'))
+    .map((e) => path.join(root, e.name))
+    .sort();
   const linked = [
-    agentsMd,
-    path.join(root, 'README.md'),
+    ...rootDocs,
     ...(await markdownFiles(docsDir)),
     ...(await markdownFiles(skillsDir)),
   ];
