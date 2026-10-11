@@ -46,31 +46,54 @@ has confirmed the spec's testing seams.
 
 ### 2. Implement (Implementer) — `/implement`
 
-Claim the ticket as the first write, so two sessions never collide. Read the ADRs that touch the area.
-Then drive `/tdd` at the seams agreed during planning.
+Claim the ticket as the first write, then read the claim back, so two sessions never collide: the
+earliest open claim wins and the other session backs off, per **Read back a claim** in
+[`docs/agents/issue-tracker.md`](agents/issue-tracker.md). Then branch as `<n>-<slug>`; nothing is
+committed to `main`. Read the ADRs that touch the area. Then drive `/tdd` at the seams agreed during
+planning.
 
 - Red before green. One slice at a time: one test, one minimal implementation, repeat.
 - `pnpm verify` runs regularly, and once more at the end.
 - Run the app for anything user-visible. A green suite is not evidence a window rendered.
 - Commit to the branch; one concern per commit.
 
-**Done when:** the ticket's own acceptance criteria pass, `pnpm verify` is green, and every source you
-made stale is corrected in the same commit.
+**Done when:** the ticket's own acceptance criteria pass, `pnpm verify` is green, every source you
+made stale is corrected in the same commit, and a PR whose body says `Closes #<n>` is open and labelled
+`status:in-review`.
 
 ### 3. Review (Reviewer) — `/review-pr`
 
-Two axes, run as parallel sub-agents and reported side by side:
+Run by a session that did not write the diff. It claims the PR first and reads the claim back, as
+an Implementer claims a ticket, and posts the report last, after setting the verdict; the report
+releases the claim. Two axes, run as parallel sub-agents and reported side by side:
 
-- **Standards** — does the diff follow `AGENTS.md`, `docs/workflow.md`'s checklist below, and the ADRs?
+- **Standards** — does the diff follow `AGENTS.md`, `docs/workflow.md`'s checklist below, the ADRs that
+  touch it, and `CODING_STANDARDS.md` once `/retro` has created it?
 - **Spec** — does it faithfully implement the originating spec, no more and no less?
 
-The reviewer posts findings; it does not push to the branch. Every finding names its source and quotes
-the line it is about.
+The reviewer sets the verdict and posts the report as a PR comment; it does not push to the branch.
+Every finding names its source and quotes the line it is about. The Implementer's own `/review-pr` run
+at the end of `/implement` is a self-check, not this step.
+
+**The verdict is strict.** `status:approved` means the report has zero open findings. Any finding at
+all, including a judgement call, a low-severity edge case or a nit, sets `status:changes-requested`.
+There is no "non-blocking" finding and no "approve, but consider…": a finding worth writing down is
+worth a fix round. Severity orders the list; it does not decide the verdict. On a re-review, every
+earlier finding is either fixed or closed by a dispute the reviewer accepted, and the new diff is
+reviewed in full, so new findings start another round.
 
 ### 4. Fix rounds
 
-The implementer addresses findings on the same branch. A finding may be disputed, with a reason and a
-source; "it works" is not a dispute. Scope creep found in review becomes a new ticket, not a bigger diff.
+The implementer claims the PR first, and reads the claim back as § 2 does, then addresses every
+finding on the same branch, whatever its severity. The issue is already claimed and the branch and
+PR exist, so a fix round skips claiming the issue, branching and opening a PR. A finding may be
+disputed, with a reason and a source; "it works" and "it is minor" are not disputes. The reviewer
+either accepts the dispute, which closes the finding, or holds it, which keeps the PR in changes
+requested. Scope creep found in review becomes a new ticket, not a bigger diff.
+
+When the round is done, swap `status:changes-requested` back to `status:in-review`, then post one PR
+comment that answers each finding: fixed in `<sha>`, naming the test for a behaviour change, or
+disputed with a reason and a source. That comment is the last write, and it releases the claim.
 
 ### 5. Merge and learn (Owner)
 

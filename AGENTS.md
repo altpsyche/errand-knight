@@ -13,6 +13,8 @@ opt-in, off by default, and uses a key the user supplies. These are the product,
 > **Stay under 200 lines** — this loads into every session. Detail belongs in a co-located `.md`.
 > **Session start:** owner says "let's work" / "next" / "review" with no ticket → follow
 > [`.agents/skills/work/SKILL.md`](.agents/skills/work/SKILL.md).
+> **Skills:** `/name` anywhere in this repo means read `.agents/skills/name/SKILL.md` and follow it.
+> No harness registers them as commands; every agent, Claude included, reads the file.
 > **Pre-code:** Phase 0 has not landed. [`docs/idea.md`](docs/idea.md) is the product source of truth,
 > and the layout below is the plan, not a description of files on disk.
 
@@ -38,7 +40,8 @@ Fix the stale source in the same commit, or say plainly that you did not.
 
 ```bash
 pnpm verify           # everything CI runs
-pnpm skills:check     # skill frontmatter + AGENTS.md pointers, under a second
+pnpm skills:check     # skill frontmatter, doc links, CLAUDE.md symlink, under a second
+pnpm scripts:test     # tests for the checker itself
 ```
 
 **Prefer running these over reasoning about whether your change is correct.** Phase 0 extends
@@ -98,9 +101,10 @@ Adding a system requires an ADR. An ADR outranks code docs and outranks this fil
 ## Working Agreement
 
 - **Roles — [`docs/workflow.md`](docs/workflow.md).** One ticket → one branch + PR. The reviewer
-  suggests fixes and never edits the branch; the owner merges. Implementer → `/implement` driving
-  `/tdd` at seams agreed up front, closing with `/review-pr`. Planner → `/grill-with-docs`, then
-  `/to-spec` and `/to-tickets`. Queue and session start → `/work`.
+  is a different session from the author, posts findings on the PR, approves only with zero open
+  findings, and never edits the branch; the owner merges. Implementer → `/implement` driving `/tdd` at seams agreed up front, then a PR labelled
+  `status:in-review`. Planner → `/grill-with-docs`, then `/to-spec` and `/to-tickets`. Queue and
+  session start → `/work`.
 - **Update the co-located `.md` in the same commit** as the code, and update the issue. Do not batch
   either to the end of a sprint.
 - **One concern per commit** — do not mix a refactor with a feature.

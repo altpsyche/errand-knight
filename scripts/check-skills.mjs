@@ -4,21 +4,13 @@
 // This is the repo's deterministic check for the class of mistake an agent makes most often when
 // editing skills or AGENTS.md: a renamed folder, a missing description, a pointer to a file that
 // moved. It is deliberately dependency-free so it runs in CI and in any sandbox.
+//
+// `checkRepo(root)` is exported for check-skills.test.mjs; running the file checks this repo.
 
-import { readFile, readdir, stat } from 'node:fs/promises';
-import { existsSync } from 'node:fs';
+import { lstat, readFile, readdir, readlink } from 'node:fs/promises';
+import { existsSync, realpathSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-
-const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const SKILLS_DIR = path.join(ROOT, '.agents', 'skills');
-const AGENTS_MD = path.join(ROOT, 'AGENTS.md');
-const SKILLS_README = path.join(SKILLS_DIR, 'README.md');
-
-const errors = [];
-const warnings = [];
-const err = (msg) => errors.push(msg);
-const warn = (msg) => warnings.push(msg);
 
 const NAME_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const MAX_DESCRIPTION = 1024;
@@ -34,7 +26,7 @@ const KNOWN_FRONTMATTER_KEYS = new Set([
 
 // Minimal YAML frontmatter reader. Handles the flat `key: value` shape these skills use, plus
 // block scalars and nested maps, which it skips rather than mis-parses.
-function parseFrontmatter(source, label) {
+function parseFrontmatter(source, label, { err }) {
   if (!source.startsWith('---\n') && !source.startsWith('---\r\n')) {
     err(`${label}: missing YAML frontmatter (file must start with ---)`);
     return null;
@@ -73,21 +65,93 @@ function parseFrontmatter(source, label) {
   return fields;
 }
 
-// Collect relative link targets from markdown, ignoring anything with a scheme, a bare anchor, or a
-// template placeholder.
-function relativeLinks(markdown) {
+// Collect relative link targets from markdown, ignoring anything with a scheme or a bare anchor.
+// Targets are percent-decoded, as GitHub resolves them. Code is stripped first: links there are
+// examples. A fence closes only on a run of its own character at least as long as its opener, and an
+// unclosed fence runs to the end of the file. Code spans pair backtick runs of equal length, so a
+// stray backtick stays literal. Inline links, `[a](target)` or `[a](<target>)`, with any CommonMark
+// title and with brackets or an image in the text, count; so do reference definitions, `[a]: target`,
+// inside block quotes and list items but not where they would continue a paragraph. Indented code
+// blocks are not detected, so a link in one is checked: that fails safe. Lines end in LF, CRLF or a lone
+// CR, as in CommonMark, so a Windows checkout parses the same as a Unix one.
+const CONTAINER = /^(?:[ \t]*(?:>|[-*+]|\d{1,9}[.)])(?=[ \t]|$))*[ \t]*/;
+const FENCE_OPEN = /^(`{3,}|~{3,})/;
+const ATX_HEADING = /^#{1,6}(?:[ \t]|$)/;
+const TITLE = String.raw`(?:"[^"]*"|'[^']*'|\([^()]*\))`;
+const REFERENCE_DEFINITION = new RegExp(
+  String.raw`^\[(?!\^)(?:[^\[\]\\]|\\.)+\]:[ \t]*(?:<([^>\n]+)>|(\S+))(?:[ \t]+${TITLE})?[ \t]*$`,
+);
+const CODE_SPAN = /(?<!`)(`+)(?!`)(?:(?!\n[ \t]*\n)[\s\S])*?(?<!`)\1(?!`)/g;
+const INLINE_LINK = new RegExp(
+  String.raw`\[((?:[^\[\]]|\[[^\[\]]*\])*)\]\((?:<([^>\n]+)>|((?:[^\s()]|\([^\s()]*\))+))(?:\s+${TITLE})?\s*\)`,
+  'g',
+);
+
+function decode(target) {
+  try {
+    return decodeURIComponent(target);
+  } catch {
+    return target;
+  }
+}
+
+function inlineTargets(text, out) {
+  for (const match of text.matchAll(INLINE_LINK)) {
+    out.push(match[2] ?? match[3]);
+    inlineTargets(match[1], out); // an image or link inside the link text, as in a README badge
+  }
+}
+
+export function relativeLinks(markdown) {
+  const targets = [];
+  const prose = [];
+  let fence = null;
+  let blockStart = true; // a definition cannot interrupt a paragraph
+  let lastMarkers = '';
+  for (const line of markdown.split(/\r\n?|\n/)) {
+    const prefix = CONTAINER.exec(line)[0];
+    const content = line.slice(prefix.length);
+    const markers = prefix.replace(/[ \t]/g, '');
+    if (fence) {
+      const run = /^(`+|~+)[ \t]*$/.exec(content);
+      if (run && run[1][0] === fence[0] && run[1].length >= fence.length) fence = null;
+      blockStart = !fence;
+      prose.push('');
+      continue;
+    }
+    const opener = FENCE_OPEN.exec(content);
+    if (opener && !(opener[1][0] === '`' && content.slice(opener[1].length).includes('`'))) {
+      fence = opener[1];
+      prose.push('');
+      continue;
+    }
+    // A new block quote or list item starts a block even right after a paragraph line; a line that
+    // drops its markers is a lazy continuation, so it does not.
+    const newContainer = markers !== '' && (markers !== lastMarkers || /[^>]/.test(markers));
+    lastMarkers = markers;
+    const definition = (blockStart || newContainer) && REFERENCE_DEFINITION.exec(content);
+    if (definition) {
+      targets.push(definition[1] ?? definition[2]);
+      blockStart = true;
+      prose.push('');
+      continue;
+    }
+    prose.push(content);
+    blockStart = content.trim() === '' || ATX_HEADING.test(content);
+  }
+  inlineTargets(prose.join('\n').replace(CODE_SPAN, ''), targets);
+
   const out = [];
-  for (const match of markdown.matchAll(/\[[^\]]*\]\(([^)\s]+)(?:\s+"[^"]*")?\)/g)) {
-    const target = match[1];
+  for (const target of targets) {
     if (/^[a-z][a-z0-9+.-]*:/i.test(target)) continue;
     if (target.startsWith('#')) continue;
-    out.push(target.split('#')[0]);
+    out.push(decode(target.split('#')[0]));
   }
   return out.filter(Boolean);
 }
 
-async function checkSkill(skillName) {
-  const dir = path.join(SKILLS_DIR, skillName);
+async function checkSkill(skillsDir, skillName, { err, warn }) {
+  const dir = path.join(skillsDir, skillName);
   const skillFile = path.join(dir, 'SKILL.md');
   const label = `.agents/skills/${skillName}/SKILL.md`;
 
@@ -97,7 +161,7 @@ async function checkSkill(skillName) {
   }
 
   const source = await readFile(skillFile, 'utf8');
-  const fields = parseFrontmatter(source, label);
+  const fields = parseFrontmatter(source, label, { err });
   if (fields) {
     if (!fields.name) {
       err(`${label}: frontmatter must set \`name\``);
@@ -134,52 +198,97 @@ async function checkSkill(skillName) {
       }
     }
   }
+}
 
-  for (const link of relativeLinks(source)) {
-    const resolved = path.resolve(dir, link);
-    if (!resolved.startsWith(ROOT)) {
+export function insideRoot(root, p) {
+  const rel = path.relative(root, p);
+  return rel !== '..' && !rel.startsWith(`..${path.sep}`) && !path.isAbsolute(rel);
+}
+
+async function markdownFiles(dir) {
+  if (!existsSync(dir)) return [];
+  const out = [];
+  for (const entry of await readdir(dir, { withFileTypes: true, recursive: true })) {
+    if (entry.isFile() && entry.name.endsWith('.md')) out.push(path.join(entry.parentPath, entry.name));
+  }
+  return out.sort();
+}
+
+// Every relative link in the agent layer must resolve: a moved doc breaks a pointer an agent follows.
+async function checkLinks(root, file, { err }) {
+  const label = path.relative(root, file);
+  for (const link of relativeLinks(await readFile(file, 'utf8'))) {
+    const resolved = path.resolve(path.dirname(file), link);
+    if (!insideRoot(root, resolved)) {
       err(`${label}: link escapes the repo: ${link}`);
-      continue;
-    }
-    if (!existsSync(resolved)) {
+    } else if (!existsSync(resolved)) {
       err(`${label}: broken relative link -> ${link}`);
     }
   }
 }
 
-async function main() {
-  if (!existsSync(SKILLS_DIR)) {
-    err('.agents/skills/ does not exist');
-  }
-  const skillNames = (await readdir(SKILLS_DIR, { withFileTypes: true }))
-    .filter((e) => e.isDirectory())
-    .map((e) => e.name)
-    .sort();
+export async function checkRepo(root) {
+  const skillsDir = path.join(root, '.agents', 'skills');
+  const agentsMd = path.join(root, 'AGENTS.md');
+  const claudeMd = path.join(root, 'CLAUDE.md');
+  const docsDir = path.join(root, 'docs');
+  const skillsReadme = path.join(skillsDir, 'README.md');
 
-  if (skillNames.length === 0) err('.agents/skills/ contains no skill folders');
+  const errors = [];
+  const warnings = [];
+  const err = (msg) => errors.push(msg);
+  const warn = (msg) => warnings.push(msg);
 
-  for (const name of skillNames) await checkSkill(name);
+  // A missing skills folder is one error, not a reason to skip the checks that follow.
+  const hasSkills = existsSync(skillsDir);
+  if (!hasSkills) err('.agents/skills/ does not exist');
+  const skillNames = hasSkills
+    ? (await readdir(skillsDir, { withFileTypes: true }))
+        .filter((e) => e.isDirectory())
+        .map((e) => e.name)
+        .sort()
+    : [];
 
-  // AGENTS.md pointers must resolve. This is what catches a skill rename that missed a reference.
-  if (!existsSync(AGENTS_MD)) {
+  if (hasSkills && skillNames.length === 0) err('.agents/skills/ contains no skill folders');
+
+  for (const name of skillNames) await checkSkill(skillsDir, name, { err, warn });
+
+  // AGENTS.md must exist and stay inside its own line budget.
+  if (!existsSync(agentsMd)) {
     err('AGENTS.md does not exist');
   } else {
-    const agents = await readFile(AGENTS_MD, 'utf8');
-    for (const link of relativeLinks(agents)) {
-      const resolved = path.resolve(ROOT, link);
-      if (!existsSync(resolved)) err(`AGENTS.md: broken relative link -> ${link}`);
-    }
+    const agents = await readFile(agentsMd, 'utf8');
     const lines = agents.split('\n').length;
     if (lines > 200) {
       err(`AGENTS.md is ${lines} lines, over its own 200-line budget (see its header)`);
     }
   }
 
+  // CLAUDE.md is a symlink to AGENTS.md (ADR-0001). A regular file there would drift silently.
+  if (!existsSync(claudeMd) || !(await lstat(claudeMd)).isSymbolicLink()) {
+    err('CLAUDE.md must be a symlink to AGENTS.md (ADR-0001)');
+  } else if ((await readlink(claudeMd)) !== 'AGENTS.md') {
+    err(`CLAUDE.md points at "${await readlink(claudeMd)}", not AGENTS.md`);
+  }
+
+  // Every root-level .md (AGENTS.md, README.md, and GLOSSARY.md or CODING_STANDARDS.md once a skill
+  // creates them), plus everything under docs/ and the skills. CLAUDE.md is a symlink, so it is skipped.
+  const rootDocs = (await readdir(root, { withFileTypes: true }))
+    .filter((e) => e.isFile() && e.name.endsWith('.md'))
+    .map((e) => path.join(root, e.name))
+    .sort();
+  const linked = [
+    ...rootDocs,
+    ...(await markdownFiles(docsDir)),
+    ...(await markdownFiles(skillsDir)),
+  ];
+  for (const file of linked) if (existsSync(file)) await checkLinks(root, file, { err });
+
   // Every skill must be indexed in the skills README, so none is silently unreachable.
-  if (!existsSync(SKILLS_README)) {
+  if (hasSkills && !existsSync(skillsReadme)) {
     err('.agents/skills/README.md does not exist');
-  } else {
-    const readme = await readFile(SKILLS_README, 'utf8');
+  } else if (hasSkills) {
+    const readme = await readFile(skillsReadme, 'utf8');
     for (const name of skillNames) {
       if (!readme.includes(`./${name}/`) && !readme.includes(`${name}/SKILL.md`)) {
         err(`.agents/skills/README.md: skill "${name}" is not indexed`);
@@ -187,15 +296,23 @@ async function main() {
     }
   }
 
+  return { skillCount: skillNames.length, errors, warnings };
+}
+
+async function main() {
+  const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+  const { skillCount, errors, warnings } = await checkRepo(root);
   const report = [];
   if (errors.length) report.push(...errors.map((m) => `error   ${m}`));
   if (warnings.length) report.push(...warnings.map((m) => `warning ${m}`));
   if (report.length) console.log(report.join('\n'));
 
   console.log(
-    `\nagent layer: ${skillNames.length} skills, ${errors.length} error(s), ${warnings.length} warning(s)`,
+    `\nagent layer: ${skillCount} skills, ${errors.length} error(s), ${warnings.length} warning(s)`,
   );
   process.exit(errors.length ? 1 : 0);
 }
 
-await main();
+// Node reports the main module by its realpath, so argv[1] must be resolved the same way. Without
+// that, a run through a symlinked path never calls main() and exits 0 having checked nothing.
+if (process.argv[1] && realpathSync(process.argv[1]) === fileURLToPath(import.meta.url)) await main();

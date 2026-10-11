@@ -11,6 +11,11 @@ string `altpsyche/errand-knight` actually uses.
 | `ready-for-human` | `ready-for-human` | Needs human hands: OAuth consent screens, store listings, GPU testing on real hardware, signing identities |
 | `wontfix` | `wontfix` | Will not be actioned |
 
+**Moving an issue to `ready-for-agent` or `ready-for-human` also applies exactly one `phase:N`**,
+below, in the same edit, whoever filed the issue. Those two states put an issue on a frontier, and
+the vendored `/triage` does not know phase labels exist, so this line is what adds them. If the
+phase is unclear, ask the owner rather than guess.
+
 The five role labels are created **before** `/triage` first runs, so it applies existing labels
 instead of inventing near-duplicates. Create them with:
 

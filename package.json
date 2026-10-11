@@ -10,7 +10,8 @@
     "node": ">=22"
   },
   "scripts": {
-    "verify": "pnpm run skills:check",
-    "skills:check": "node scripts/check-skills.mjs"
+    "verify": "pnpm run skills:check && pnpm run scripts:test",
+    "skills:check": "node scripts/check-skills.mjs",
+    "scripts:test": "node --test scripts/check-skills.test.mjs"
   }
 }
