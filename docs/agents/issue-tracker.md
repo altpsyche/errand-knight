@@ -14,6 +14,8 @@ the GitHub issue wins.
 - **Read**: `gh issue view <number> --comments`, also fetching labels:
   `gh issue view <n> --json number,title,body,labels,comments`.
 - **List**: `gh issue list --state open --json number,title,body,labels,assignees --jq '[.[] | {number, title, labels: [.labels[].name], assignees: [.assignees[].login]}]'`
+- **List PRs** for a PR frontier, open and carrying one label, oldest first:
+  `gh pr list --state open --label <label> --json number,title,createdAt --jq 'sort_by(.createdAt) | .[] | {number, title}'`
 - **Comment**: `gh issue comment <number> --body "..."`
 - **Label**: `gh issue edit <number> --add-label "..."` / `--remove-label "..."`
 - **Close**: `gh issue close <number> --comment "..."`
