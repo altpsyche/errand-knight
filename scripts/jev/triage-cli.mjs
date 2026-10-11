@@ -9,7 +9,7 @@
 
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
-import { createClient } from './client.mjs';
+import { createClient, errorLine } from './client.mjs';
 import { run } from './triage.mjs';
 
 const args = process.argv.slice(2);
@@ -51,6 +51,6 @@ let decision;
 try {
   decision = await run(readIssue(), { client: createClient() });
 } catch (error) {
-  decision = { status: 'error', reason: String(error?.message ?? error).split('\n')[0] };
+  decision = { status: 'error', reason: errorLine(error) };
 }
 console.log(json ? JSON.stringify(decision) : human(decision));

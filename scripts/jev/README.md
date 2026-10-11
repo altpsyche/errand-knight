@@ -7,7 +7,7 @@ thinking model does not spend tokens on them. Dev tooling only, never app code
 | File | What it is |
 |---|---|
 | `constants.mjs` | The pinned model id and **every threshold**. Tune them here, in one reviewed edit |
-| `client.mjs` | The shared client: key and SDK checks, one request, never throws |
+| `client.mjs` | The shared client: key and SDK checks, one request, never throws. Also `errorLine`, the one redacting error-to-line helper every tool and CLI uses |
 | `triage.mjs` | The triage helper, `run(input, { client })` |
 | `triage-cli.mjs` | Its CLI |
 | `triage.test.mjs` | Tests at the `run()` seam with a fake client; run by `pnpm scripts:test` |

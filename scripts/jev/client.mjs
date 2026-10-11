@@ -31,7 +31,7 @@ export function createClient({ env = process.env, importSdk = () => import('@typ
       if (error?.code === 'ERR_MODULE_NOT_FOUND') {
         return { status: 'skipped', reason: '@typesafe-ai/sdk is not installed (run pnpm install)' };
       }
-      return { status: 'error', reason: oneLine(error, key) };
+      return { status: 'error', reason: errorLine(error, env) };
     }
 
     try {
@@ -40,14 +40,20 @@ export function createClient({ env = process.env, importSdk = () => import('@typ
       const result = await sdkClient.systemOne({ state, questions, model: MODEL });
       return { status: 'ok', answers: result.answers };
     } catch (error) {
-      return { status: 'error', reason: oneLine(error, key) };
+      return { status: 'error', reason: errorLine(error, env) };
     }
   }
 
   return { ask };
 }
 
-// The first line of an error's message, with the key redacted in case a message ever echoes it.
-function oneLine(error, key) {
-  return String(error?.message ?? error).split('\n')[0].replaceAll(key, '[redacted]');
+/**
+ * The one way any Jev tool turns an error into its one-line reason: the first line of the message,
+ * with the key from `env` redacted in case a message ever echoes it. Every tool and CLI uses this,
+ * never its own copy.
+ */
+export function errorLine(error, env = process.env) {
+  const line = String(error?.message ?? error).split('\n')[0];
+  const key = env[KEY_VAR]?.trim();
+  return key ? line.replaceAll(key, '[redacted]') : line;
 }

@@ -7,6 +7,7 @@
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { errorLine } from './client.mjs';
 import { TRIAGE_APPLY_CONFIDENCE } from './constants.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
@@ -116,10 +117,6 @@ export async function run(input, { client }) {
     if (result.status !== 'ok') return { status: result.status, reason: result.reason };
     return { status: 'ok', role: judge(result.answers.role), phase: judge(result.answers.phase) };
   } catch (error) {
-    return { status: 'error', reason: oneLine(error) };
+    return { status: 'error', reason: errorLine(error) };
   }
-}
-
-function oneLine(error) {
-  return String(error?.message ?? error).split('\n')[0];
 }
