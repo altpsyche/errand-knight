@@ -83,10 +83,17 @@ issue is already claimed, and the branch and the PR already exist.
    line, find them as normal. The originating spec is the issue
    in `Closes #<n>`. When the PR closes no issue, review the Spec axis against the PR body, say so
    in the report, and flag the missing issue as a finding; do not stop to ask.
-4. **Set the state**: swap `status:in-review` for `status:approved` only when no finding is open.
+4. **Verify the findings**, once the report is drafted and if it has any: write them to a file
+   under `.scratch/` in the input format of [`scripts/jev/README.md`](../../../scripts/jev/README.md)
+   § Finding verifier, then run `pnpm run --silent jev:verify <file>`. On a `flag` line, re-read
+   that finding's cited source once, then keep or drop it; the tool never drops a finding. Never
+   drop a constitution-level finding on a flag alone. An error line that names a finding means
+   the file is malformed: fix that finding and run once more. On any other error or skip line,
+   continue as normal.
+5. **Set the state**: swap `status:in-review` for `status:approved` only when no finding is open.
    Any finding, however minor, means `status:changes-requested`; see the verdict rule in
    [`docs/workflow.md`](../../../docs/workflow.md) § 3. Never push to the branch.
-5. **Post the report** on the PR as a comment. It is the last write, so it releases the claim only
+6. **Post the report** on the PR as a comment. It is the last write, so it releases the claim only
    once the label is set. A finding that stays in the chat does not exist.
 
 **Planner** → `/grill-with-docs`, then `/to-spec` and `/to-tickets`.
