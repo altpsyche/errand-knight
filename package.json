@@ -1,0 +1,16 @@
+{
+  "name": "errand-knight",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Turn real life into a quest log. Local-first gamified productivity, built by agents.",
+  "license": "MIT",
+  "packageManager": "pnpm@12.5.1",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "verify": "pnpm run skills:check",
+    "skills:check": "node scripts/check-skills.mjs"
+  }
+}

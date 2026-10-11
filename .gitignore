@@ -1,0 +1,43 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build output
+dist/
+build/
+src-tauri/target/
+src-tauri/gen/
+*.tsbuildinfo
+
+# Local scratch: draft specs and ticket breakdowns, never authoritative.
+# See docs/agents/issue-tracker.md.
+.scratch/
+.vendor-tmp/
+
+# Secrets and local config. Nothing here should ever be committed.
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.keystore
+*.jks
+tauri.conf.local.json
+
+# Logs and databases
+*.log
+logs/
+*.db
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite3
+
+# Editors and OS
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.swp
