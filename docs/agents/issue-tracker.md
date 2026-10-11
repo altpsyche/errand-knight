@@ -53,7 +53,9 @@ Two families, both defined up front so agents never invent a label:
 
 - **Triage roles** — see [`triage-labels.md`](./triage-labels.md).
 - **Phase** — `phase:0` … `phase:6`, mirroring [`docs/idea.md`](../idea.md) § Roadmap. Every
-  issue carries exactly one.
+  issue carries exactly one. Two rules apply it: publishing an issue from a skill, below, and
+  moving an issue to `ready-for-agent` or `ready-for-human` in triage, per
+  [`triage-labels.md`](./triage-labels.md).
 
 ## Local markdown fallback
 
