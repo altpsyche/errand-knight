@@ -14,8 +14,10 @@ the GitHub issue wins.
 - **Read**: `gh issue view <number> --comments`, also fetching labels:
   `gh issue view <n> --json number,title,body,labels,comments`.
 - **List**: `gh issue list --state open --json number,title,body,labels,assignees --jq '[.[] | {number, title, labels: [.labels[].name], assignees: [.assignees[].login]}]'`
-- **List PRs** for a PR frontier, open, carrying one label and unclaimed, oldest first:
-  `gh pr list --state open --label <label> --json number,title,createdAt,comments --jq 'sort_by(.createdAt) | map(select(.comments | last | .body // "" | startswith("Claimed:") | not)) | .[] | {number, title}'`
+- **List PRs** for a PR frontier, open, carrying one label and unclaimed, oldest first. It asks
+  GraphQL for each PR's newest comment directly, because `gh pr list --json comments` reads only
+  a PR's first 100 comments:
+  `gh api graphql -F owner='{owner}' -F repo='{repo}' -F label=<label> -f query='query($owner:String!,$repo:String!,$label:String!){repository(owner:$owner,name:$repo){pullRequests(states:OPEN,labels:[$label],first:100,orderBy:{field:CREATED_AT,direction:ASC}){nodes{number title comments(last:1){nodes{body}}}}}}' --jq '.data.repository.pullRequests.nodes[] | select(.comments.nodes[0].body // "" | startswith("Claimed:") | not) | {number, title}'`
 - **Comment**: `gh issue comment <number> --body "..."`
 - **Label**: `gh issue edit <number> --add-label "..."` / `--remove-label "..."`
 - **Close**: `gh issue close <number> --comment "..."`
