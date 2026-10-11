@@ -234,12 +234,14 @@ test('a request of exactly 64k estimated tokens is sent whole, and one token mor
   });
 });
 
-test('units are ADRs, docs/idea.md sections at ## and co-located docs; nothing else is asked about', async () => {
+test('units are ADRs, specs, docs/idea.md sections at ## and co-located docs; nothing else is asked about', async () => {
   const files = {
     'AGENTS.md': '# Agents\n',
     'README.md': '# Readme MARK-NO-README\n',
     'docs/workflow.md': 'MARK-NO-WORKFLOW\n',
-    'docs/specs/thing.md': 'MARK-NO-SPEC\n',
+    'docs/specs/thing.md': '# A spec\n',
+    'docs/agents/issue-tracker.md': 'MARK-NO-AGENTS-DOC\n',
+    'docs/dev_setup.md': 'MARK-NO-DEV-SETUP\n',
     'docs/adr/README.md': 'MARK-NO-ADR-INDEX\n',
     'docs/adr/0007-real.md': '# Real\n',
     'docs/idea.md': [
@@ -270,6 +272,7 @@ test('units are ADRs, docs/idea.md sections at ## and co-located docs; nothing e
       assert.deepEqual(listed(result), [
         'AGENTS.md',
         'docs/adr/0007-real.md',
+        'docs/specs/thing.md',
         'docs/idea.md § Errand Knight',
         'docs/idea.md § 1. Vision',
         'docs/idea.md § 2. Sync',

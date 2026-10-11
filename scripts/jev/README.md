@@ -62,8 +62,8 @@ If either doc stops matching that shape, the tool prints an error line and exits
 ## Doc pruner
 
 Says which docs to read before working on a ticket or reviewing a PR. It prints a read list:
-`AGENTS.md` always first, then each unit that Jev judges relevant to the work, in the order
-below. The agent reads those and skips the rest. It leans towards including, because missing a
+`AGENTS.md` always first, then each ADR, spec, `docs/idea.md` section and co-located doc that Jev
+judges relevant to the work, in the order below. The agent reads those and skips the rest. It leans towards including, because missing a
 governing ADR costs far more than reading an extra doc.
 
 How the agent uses it is in [`/work`](../../.agents/skills/work/SKILL.md) § 3 and
@@ -99,17 +99,27 @@ document?", carrying the unit's text. A unit is included at a noul at or above
 **The units**, found on every run so a new doc is judged without an edit here:
 
 - **Each ADR**: a tracked file matching `docs/adr/NNNN-*.md`.
+- **Each spec**: a tracked `.md` file under `docs/specs/`. A spec outranks `docs/idea.md` in
+  `AGENTS.md`'s precedence order, so it is judged like the sections below it.
 - **Each `docs/idea.md` section**: one per `#` or `##` heading, running to the next one, so the
   title and intro form one unit and each numbered section (`## 5. Technical Architecture`) is one
   unit with its `###` subsections inside it. That is the level the other docs cite ("idea.md §5"),
   and a `###` subsection is often a few lines that mean little without its section. A heading
   inside a code fence is not a heading.
 - **Each co-located `.md`**: a tracked `.md` file in a subdirectory, beside the code it describes,
-  except under `docs/` (ADRs and `docs/idea.md` are units of their own, and the rest is workflow
-  the agent already follows), under a dot-directory (`.agents/` skills, `.github/`) or under
+  except under `docs/`, under a dot-directory (`.agents/` skills, `.github/`) or under
   `node_modules/`. Root files are not units: `AGENTS.md` is always on the list, and `README.md`
   is the project's front page. Tracked means `git ls-files`: an untracked file is not
   authoritative, and the rule keeps out build output and nested worktrees.
+
+The units are listed in that order, which is `AGENTS.md`'s precedence order. The rest of `docs/`
+is not judged, because it says how to work rather than what governs the code a ticket touches,
+and each file is already reached by name at the step that needs it. `docs/workflow.md` is the
+loop `/work` runs, `docs/dev_setup.md` is what `AGENTS.md` sends you to before anything
+system-level, and `docs/agents/*.md` is the skills' wiring: `issue-tracker.md` for `/work` and
+every tracker step, `triage-labels.md` for `/triage`, `domain.md` for the engineering skills.
+Pruning those would hide a step's instructions from the agent running that step, and listing them
+for every ticket would add the same docs to every list.
 
 **Batching.** The questions go in as few requests as Jev's limits allow: 64k tokens a request,
 and 32k for the state plus the longest question. Sizes are estimated at

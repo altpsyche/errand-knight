@@ -1,9 +1,9 @@
-// Doc pruner: given a ticket or PR, says which ADRs, co-located `.md` files and `docs/idea.md`
-// sections are relevant to the work, so an agent reads those and `AGENTS.md` and skips the rest.
-// See README.md beside this file.
+// Doc pruner: given a ticket or PR, says which ADRs, specs, co-located `.md` files and
+// `docs/idea.md` sections are relevant to the work, so an agent reads those and `AGENTS.md` and
+// skips the rest. See README.md beside this file.
 //
-// The units are found on every run, not listed here, so a new ADR or co-located doc is judged
-// without an edit to this file.
+// The units are found on every run, not listed here, so a new ADR, spec or co-located doc is
+// judged without an edit to this file.
 
 import { execFile } from 'node:child_process';
 import { readFile } from 'node:fs/promises';
@@ -17,6 +17,7 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '.
 const ALWAYS = 'AGENTS.md';
 const IDEA_DOC = 'docs/idea.md';
 const ADR = /^docs\/adr\/\d{4}-[^/]+\.md$/;
+const SPEC = /^docs\/specs\/.+\.md$/;
 
 /**
  * Split `docs/idea.md` into its sections: one per `#` or `##` heading, running to the next one, so
@@ -43,9 +44,10 @@ export function ideaSections(doc) {
 /**
  * Whether a tracked `.md` path is a co-located doc: one in a subdirectory, beside the code it
  * describes. Not one at the root (`AGENTS.md` is always read; `README.md` is the project's front
- * page), not under `docs/` (ADRs and `docs/idea.md` are their own units; the rest is workflow the
- * agent already follows), not under a dot-directory (skills in `.agents/`, CI in `.github/`), and
- * never under `node_modules/`.
+ * page), not under `docs/` (ADRs, specs and `docs/idea.md` are units of their own; the rest of
+ * `docs/` is how to work, reached through `/work`, the skills and `AGENTS.md` at the step that needs
+ * it), not under a dot-directory (skills in `.agents/`, CI in `.github/`), and never under
+ * `node_modules/`.
  */
 export function isCoLocated(file) {
   const parts = file.split('/');
@@ -60,14 +62,18 @@ async function trackedMarkdown(root) {
   return stdout.split('\0').filter(Boolean).sort();
 }
 
-/** Every unit the pruner judges, in read-list order: ADRs, `docs/idea.md` sections, co-located docs. */
+/**
+ * Every unit the pruner judges, in read-list order, which is `AGENTS.md`'s precedence order: ADRs,
+ * specs, `docs/idea.md` sections, co-located docs.
+ */
 async function units(root) {
   const tracked = await trackedMarkdown(root);
   const read = async (file) => ({ path: file, text: (await readFile(path.join(root, file), 'utf8')).trim() });
   const adrs = await Promise.all(tracked.filter((f) => ADR.test(f)).map(read));
+  const specs = await Promise.all(tracked.filter((f) => SPEC.test(f)).map(read));
   const idea = ideaSections(await readFile(path.join(root, IDEA_DOC), 'utf8'));
   const coLocated = await Promise.all(tracked.filter(isCoLocated).map(read));
-  return [...adrs, ...idea, ...coLocated];
+  return [...adrs, ...specs, ...idea, ...coLocated];
 }
 
 function question(unit) {
