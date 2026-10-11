@@ -47,9 +47,11 @@ function human(decision) {
   ].join('\n');
 }
 
-let decision;
+// Check the key and the SDK first: a keyless run must not fetch the issue, and must print the skip.
+const client = createClient();
+let decision = await client.available();
 try {
-  decision = await run(readIssue(), { client: createClient() });
+  if (decision.status === 'ok') decision = await run(readIssue(), { client });
 } catch (error) {
   decision = { status: 'error', reason: errorLine(error) };
 }

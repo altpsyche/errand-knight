@@ -91,10 +91,10 @@ function judge(answer) {
   };
 }
 
-async function readDocs() {
+async function readDocs(root) {
   const [labels, idea] = await Promise.all([
-    readFile(path.join(ROOT, LABELS_DOC), 'utf8'),
-    readFile(path.join(ROOT, IDEA_DOC), 'utf8'),
+    readFile(path.join(root, LABELS_DOC), 'utf8'),
+    readFile(path.join(root, IDEA_DOC), 'utf8'),
   ]);
   return { roles: roleCriteria(labels), phases: phaseCriteria(idea) };
 }
@@ -103,15 +103,19 @@ async function readDocs() {
  * Suggest a role label and a phase label for one issue.
  *
  * @param {{ title: string, body?: string }} input  the issue
- * @param {{ client: { ask(request): Promise<object> } }} deps  a shared client from client.mjs
+ * @param {{ client: { available(): Promise<object>, ask(request): Promise<object> }, root?: string }} deps
+ *   a shared client from client.mjs, and the repo root the docs are read from (default: this repo)
  * @returns one of
  *   { status: 'ok', role: Suggestion, phase: Suggestion }, Suggestion = { label, confidence, decision }
  *   { status: 'skipped', reason }  no key, or the SDK is not installed
  *   { status: 'error', reason }    anything else; never thrown
  */
-export async function run(input, { client }) {
+export async function run(input, { client, root = ROOT }) {
   try {
-    const { roles, phases } = await readDocs();
+    // Before any other work, so a keyless run skips even when a doc no longer parses.
+    const ready = await client.available();
+    if (ready.status !== 'ok') return ready;
+    const { roles, phases } = await readDocs(root);
     const state = { issue: { title: input.title, body: input.body ?? '' } };
     const result = await client.ask({ state, questions: questions(roles, phases) });
     if (result.status !== 'ok') return { status: result.status, reason: result.reason };

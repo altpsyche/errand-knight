@@ -1,8 +1,14 @@
 // Tests for the triage helper, at its one seam: `run(input, { client })`. A fake client returns
 // canned Jev answers; nothing here touches the network or needs a key.
 
+import { spawnSync } from 'node:child_process';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { chmod, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { existsSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { createClient } from './client.mjs';
 import { run } from './triage.mjs';
 
@@ -13,6 +19,9 @@ function fakeClient(role, phase) {
   const calls = [];
   return {
     calls,
+    async available() {
+      return { status: 'ok' };
+    },
     async ask(request) {
       calls.push(request);
       return { status: 'ok', answers: { role: { type: 'choice', ...role }, phase: { type: 'choice', ...phase } } };
@@ -124,4 +133,45 @@ test('reports an SDK that fails to load, other than a missing module, as a redac
   assert.equal(decision.status, 'error');
   assert.equal(sent.length, 0);
   assert.ok(!decision.reason.includes(KEY), `key leaked: ${decision.reason}`);
+});
+
+test('skips before reading the docs when there is no key, even if the docs no longer parse', async () => {
+  // A repo root with neither doc: reading them would be an error, not a skip.
+  const root = await mkdtemp(path.join(tmpdir(), 'jev-triage-'));
+  try {
+    const { client } = realClient({ env: {} });
+    const decision = await run(ISSUE, { client, root });
+    assert.equal(decision.status, 'skipped');
+    assert.match(decision.reason, /TYPESAFE_API_KEY/);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+// The CLI, run as an agent runs it, with a `gh` stub first on PATH that records any call.
+const CLI = path.join(path.dirname(fileURLToPath(import.meta.url)), 'triage-cli.mjs');
+
+async function runCli(args, { env = {}, stdin = '' } = {}) {
+  const dir = await mkdtemp(path.join(tmpdir(), 'jev-cli-'));
+  const log = path.join(dir, 'gh.log');
+  await writeFile(path.join(dir, 'gh'), `#!/bin/sh\necho "$@" >> "${log}"\nexit 1\n`);
+  await chmod(path.join(dir, 'gh'), 0o755);
+  try {
+    const result = spawnSync(process.execPath, [CLI, ...args], {
+      input: stdin,
+      encoding: 'utf8',
+      env: { PATH: dir, ...env },
+    });
+    const ghCalls = existsSync(log) ? (await readFile(log, 'utf8')).trim().split('\n') : [];
+    return { status: result.status, stdout: result.stdout, ghCalls };
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+}
+
+test('the CLI prints the skip line without calling gh when there is no key', async () => {
+  const { status, stdout, ghCalls } = await runCli(['3']);
+  assert.equal(status, 0);
+  assert.equal(stdout, 'jev triage: skipped, TYPESAFE_API_KEY is not set; triage as normal\n');
+  assert.deepEqual(ghCalls, []);
 });

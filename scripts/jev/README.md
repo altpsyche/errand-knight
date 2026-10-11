@@ -54,7 +54,8 @@ If either doc stops matching that shape, the tool prints an error line and exits
 ## Skip behaviour
 
 Every tool is optional. Without `TYPESAFE_API_KEY` in the environment, or without the SDK
-installed (`pnpm install` not run), it makes no request, prints one line and exits 0:
+installed (`pnpm install` not run), it makes no request, prints one line and exits 0. The client's
+`available()` checks both before any other work, so a keyless run never calls `gh` or reads a doc:
 
 ```text
 jev triage: skipped, TYPESAFE_API_KEY is not set; triage as normal
