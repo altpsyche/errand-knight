@@ -21,6 +21,9 @@ Suggests one role label (`needs-info`, `ready-for-agent`, `ready-for-human`, `wo
 - **defer** — below it. Decide the role as you normally would; treat a deferred phase as unclear,
   which means asking the owner.
 
+A phase is only ever applied alongside `ready-for-agent` or `ready-for-human`; for any other role
+the phase line is ignored, though the helper always prints one.
+
 How the agent uses it is in [`docs/agents/triage-labels.md`](../../docs/agents/triage-labels.md).
 
 ```bash
@@ -35,7 +38,7 @@ Default output, two lines:
 
 ```text
 role: ready-for-agent (confidence 0.93) apply
-phase: phase:0 (confidence 0.62) defer - phase unclear, ask the owner
+phase: phase:0 (confidence 0.62) defer - phase unclear: ask the owner if the role is ready-for-*
 ```
 
 `--json` prints `{ status: "ok", role, phase }`, where `role` and `phase` are each

@@ -25,11 +25,14 @@ Before choosing a role or a phase for an issue, run the triage helper
 node scripts/jev/triage-cli.mjs <number>
 ```
 
-It prints one line for the role and one for the phase, each ending in `apply` or `defer`:
+It prints one line for the role and one for the phase, each ending in `apply` or `defer`. Settle
+the role first; the phase follows from it:
 
-- **apply** — apply that label without deliberating.
-- **defer** on the role — decide the role as you normally would.
-- **defer** on the phase — the phase is unclear: ask the owner, per the rule above.
+- **Role `apply`** — apply that role label without deliberating.
+- **Role `defer`** — decide the role as you normally would.
+- **Phase** — only when the role you end up with is `ready-for-agent` or `ready-for-human`, per the
+  rule above. Then `apply` means apply that `phase:N`, and `defer` means the phase is unclear: ask
+  the owner. For any other role, ignore the phase line; the helper always prints one.
 - **A skip or error line** (`jev triage: skipped, …` or `jev triage: error, …`) — continue as
   normal, as if the tool did not exist.
 

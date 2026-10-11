@@ -43,7 +43,7 @@ function human(decision) {
     (s.decision === 'defer' ? ` - ${onDefer}` : '');
   return [
     line('role', decision.role, 'decide the role as normal'),
-    line('phase', decision.phase, 'phase unclear, ask the owner'),
+    line('phase', decision.phase, 'phase unclear: ask the owner if the role is ready-for-*'),
   ].join('\n');
 }
 
