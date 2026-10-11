@@ -24,6 +24,10 @@ const KNOWN_FRONTMATTER_KEYS = new Set([
   'allowed-tools',
 ]);
 
+// A block-scalar header: style, then an optional chomping and indentation indicator in either
+// order, then an optional comment, as in `>`, `|-`, `>2`, `|+1` or `> # note`.
+const BLOCK_HEADER = /^([|>])(?:[1-9][+-]?|[+-][1-9]?)?(?:[ \t]+#.*)?$/;
+
 // Minimal YAML frontmatter reader. Handles the flat `key: value` shape these skills use, block
 // scalars (`|` keeps line breaks, `>` folds them to spaces), and nested maps, which it skips rather
 // than mis-parses.
@@ -56,7 +60,7 @@ function parseFrontmatter(source, label, { err }) {
       endBlock();
       currentKey = topLevel[1];
       let value = topLevel[2].trim();
-      const blockStyle = /^([|>])[+-]?$/.exec(value);
+      const blockStyle = BLOCK_HEADER.exec(value);
       if (blockStyle) {
         block = { key: currentKey, style: blockStyle[1], lines: [] };
       } else if (value === '') {

@@ -220,3 +220,14 @@ test('a block-scalar description is read, as upstream skills write it', () =>
     assert.deepEqual(errors, []);
     assert.deepEqual(warnings, []);
   }));
+
+test('block-scalar headers with an indentation indicator or a comment are read', async () => {
+  for (const header of ['>2', '>-2', '|2-', '|+', '> # note', '|-1 # note']) {
+    await withRepo(async (root) => {
+      const skill = `---\nname: demo\ndescription: ${header}\n  Use when testing the checker.\n---\n\nBody.\n`;
+      await writeFile(path.join(root, '.agents', 'skills', 'demo', 'SKILL.md'), skill);
+      const { errors, warnings } = await checkRepo(root);
+      assert.deepEqual({ header, errors, warnings }, { header, errors: [], warnings: [] });
+    });
+  }
+});
