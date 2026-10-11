@@ -28,6 +28,7 @@ opt-in, off by default, and uses a key the user supplies. These are the product,
 | Issues, PR state | **GitHub issues** — see [`docs/agents/issue-tracker.md`](docs/agents/issue-tracker.md) |
 | Local scratch, never authoritative | `.scratch/` (gitignored) |
 | Skills | [`.agents/skills/README.md`](.agents/skills/README.md) |
+| Sandbox, SSH and build gotchas — read before pushing or running anything system-level | [`docs/dev_setup.md`](docs/dev_setup.md) |
 
 **Precedence when sources disagree:** ADR → spec → `docs/idea.md` → co-located `.md` → this file.
 An issue is a request; an ADR is a decision. When they conflict the ADR wins and the issue is wrong.
