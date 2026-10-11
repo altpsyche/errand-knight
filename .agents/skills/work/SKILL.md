@@ -85,6 +85,9 @@ issue is already claimed, and the branch and the PR already exist.
 
 Before ending the session, in this order:
 
-1. The tracker reflects reality: claimed items claimed, finished items closed with a comment.
+1. The tracker reflects reality: claimed items claimed, and finished work handed on. An
+   Implementer's PR is open and labelled `status:in-review`; a Reviewer's carries its verdict.
+   The merge closes the issue, per [`docs/workflow.md`](../../../docs/workflow.md) § 5; never
+   close it yourself.
 2. The tree is clean, and the co-located `.md` changed in the same commit as its code.
 3. Any convention you changed is changed in `AGENTS.md` in the same commit.
