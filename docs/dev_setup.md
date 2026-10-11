@@ -128,8 +128,9 @@ The one real gap is the Tauri CLI. Install it in Phase 0, either as a dev depend
 (`pnpm add -D @tauri-apps/cli`, preferred, so the version lives in `package.json`) or globally
 (`cargo install tauri-cli`).
 
-CI runs on Ubuntu, whose package names differ (`libwebkit2gtk-4.1-dev`, `libappindicator3-dev`,
-`librsvg2-dev`, `patchelf`). See [`.github/workflows/ci.yml`](../.github/workflows/ci.yml).
+CI runs on Ubuntu, whose package names differ (`libwebkit2gtk-4.1-dev`, `libssl-dev`, `libxdo-dev`,
+`libayatana-appindicator3-dev`, `librsvg2-dev`, `patchelf`). See
+[`.github/workflows/ci.yml`](../.github/workflows/ci.yml).
 
 ## Verification commands
 
