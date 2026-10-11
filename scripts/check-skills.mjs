@@ -72,7 +72,8 @@ function parseFrontmatter(source, label, { err }) {
 // stray backtick stays literal. Inline links, `[a](target)` or `[a](<target>)`, with any CommonMark
 // title and with brackets or an image in the text, count; so do reference definitions, `[a]: target`,
 // inside block quotes and list items but not where they would continue a paragraph. Indented code
-// blocks are not detected, so a link in one is checked: that fails safe.
+// blocks are not detected, so a link in one is checked: that fails safe. Lines end in LF, CRLF or a lone
+// CR, as in CommonMark, so a Windows checkout parses the same as a Unix one.
 const CONTAINER = /^(?:[ \t]*(?:>|[-*+]|\d{1,9}[.)])(?=[ \t]|$))*[ \t]*/;
 const FENCE_OPEN = /^(`{3,}|~{3,})/;
 const ATX_HEADING = /^#{1,6}(?:[ \t]|$)/;
@@ -107,7 +108,7 @@ export function relativeLinks(markdown) {
   let fence = null;
   let blockStart = true; // a definition cannot interrupt a paragraph
   let lastMarkers = '';
-  for (const line of markdown.split('\n')) {
+  for (const line of markdown.split(/\r\n?|\n/)) {
     const prefix = CONTAINER.exec(line)[0];
     const content = line.slice(prefix.length);
     const markers = prefix.replace(/[ \t]/g, '');

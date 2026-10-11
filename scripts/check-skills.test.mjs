@@ -205,3 +205,9 @@ test('percent-encoded targets are decoded before resolving', () =>
     const { errors } = await checkRepo(root);
     assert.deepEqual(errors, ['docs/guide.md: broken relative link -> ./bad%zz.md']);
   }));
+
+test('CRLF and CR line endings close fences and end reference definitions', () => {
+  assert.deepEqual(relativeLinks('```\r\ncode\r\n```\r\n[a](./after-fence.md)\r\n'), ['./after-fence.md']);
+  assert.deepEqual(relativeLinks('[a]: ./crlf-ref.md\r\n'), ['./crlf-ref.md']);
+  assert.deepEqual(relativeLinks('~~~\rcode\r~~~\r[b]: ./cr-ref.md\r'), ['./cr-ref.md']);
+});
