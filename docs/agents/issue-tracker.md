@@ -22,14 +22,28 @@ the GitHub issue wins.
 - **Label**: `gh issue edit <number> --add-label "..."` / `--remove-label "..."`
 - **Close**: `gh issue close <number> --comment "..."`
 - **Claim**: `gh issue edit <number> --add-assignee @me` then
-  `gh issue comment <number> --body "Claimed: branch <number>-<slug>"`. Every session shares the
-  owner's account, so the comment is the claim; the assignee only hides the issue from the frontier.
-- **Claim a PR** for a review or a fix round: `gh pr comment <number> --body "Claimed: review"` or
-  `--body "Claimed: fix round"`. A PR is claimed while its newest comment starts with `Claimed:`,
-  which is what **List PRs** filters on. The session posts nothing else until its report or its
-  answer to the findings, which it posts after the label swap, and that comment releases the
-  claim. Any other comment releases it too, so the owner frees a claim left by a dead session by
-  commenting.
+  `gh issue comment <number> --body "Claimed: branch <number>-<slug> (session <token>)"`, then
+  **Read back a claim**. Every session shares the owner's account, so the comment is the claim and
+  the token tells sessions apart; the assignee only hides the issue from the frontier. The owner
+  frees an issue claim left by a dead session by unassigning it and commenting.
+- **Claim a PR** for a review or a fix round:
+  `gh pr comment <number> --body "Claimed: review (session <token>)"` or
+  `--body "Claimed: fix round (session <token>)"`, then **Read back a claim**. A PR is claimed
+  while its newest comment starts with `Claimed:`, which is what **List PRs** filters on. The
+  session posts nothing else until its report or its answer to the findings, which it posts after
+  the label swap, and that comment releases the claim. Any other comment releases it too, so the
+  owner frees a claim left by a dead session by commenting.
+- **Session token**: eight random hex characters, generated once per session with
+  `openssl rand -hex 4`, and carried by every claim the session posts.
+- **Read back a claim**, straight after posting it, for an issue or a PR alike. The claims that
+  count are the `Claimed:` comments after the newest comment that is not one, and the earliest of
+  them wins. This prints the winner and the item's labels:
+  `gh api graphql -F owner='{owner}' -F repo='{repo}' -F n=<number> -f query='query($owner:String!,$repo:String!,$n:Int!){repository(owner:$owner,name:$repo){issueOrPullRequest(number:$n){... on Issue{labels(first:20){nodes{name}} comments(last:100){nodes{body}}} ... on PullRequest{labels(first:20){nodes{name}} comments(last:100){nodes{body}}}}}}' --jq '.data.repository.issueOrPullRequest | {labels: [.labels.nodes[].name], winner: (.comments.nodes | .[((map(.body | startswith("Claimed:") | not) | rindex(true)) // -1) + 1:] | first | .body)}'`
+  The session holds the item only if the winner carries its token and the item still carries the
+  label that put it on the frontier. Otherwise it backs off: it deletes its own claim with
+  `gh api -X DELETE 'repos/{owner}/{repo}/issues/comments/<id>'`, where `<id>` is the number
+  after `issuecomment-` in the URL that posting the claim printed, then picks again. On an issue
+  it leaves the assignee, which the winner shares.
 - **Branch**: `git fetch origin` then `git switch -c <number>-<slug> origin/main`. Branch from
   `origin/main`, not a local `main` that may be stale.
 - **Open a PR**: `git push -u origin HEAD` then

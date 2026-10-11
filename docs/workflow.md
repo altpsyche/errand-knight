@@ -46,8 +46,10 @@ has confirmed the spec's testing seams.
 
 ### 2. Implement (Implementer) — `/implement`
 
-Claim the ticket as the first write, so two sessions never collide, then branch as `<n>-<slug>`; nothing
-is committed to `main`. Read the ADRs that touch the area. Then drive `/tdd` at the seams agreed during
+Claim the ticket as the first write, then read the claim back, so two sessions never collide: the
+earliest open claim wins and the other session backs off, per **Read back a claim** in
+[`docs/agents/issue-tracker.md`](agents/issue-tracker.md). Then branch as `<n>-<slug>`; nothing is
+committed to `main`. Read the ADRs that touch the area. Then drive `/tdd` at the seams agreed during
 planning.
 
 - Red before green. One slice at a time: one test, one minimal implementation, repeat.
@@ -61,9 +63,9 @@ made stale is corrected in the same commit, and a PR whose body says `Closes #<n
 
 ### 3. Review (Reviewer) — `/review-pr`
 
-Run by a session that did not write the diff. It claims the PR first, as an Implementer claims a
-ticket, and posts the report last, after setting the verdict; the report releases the claim. Two
-axes, run as parallel sub-agents and reported side by side:
+Run by a session that did not write the diff. It claims the PR first and reads the claim back, as
+an Implementer claims a ticket, and posts the report last, after setting the verdict; the report
+releases the claim. Two axes, run as parallel sub-agents and reported side by side:
 
 - **Standards** — does the diff follow `AGENTS.md`, `docs/workflow.md`'s checklist below, the ADRs that
   touch it, and `CODING_STANDARDS.md` once `/retro` has created it?
@@ -82,12 +84,12 @@ reviewed in full, so new findings start another round.
 
 ### 4. Fix rounds
 
-The implementer claims the PR first, then addresses every finding on the same branch, whatever its
-severity. The issue is already claimed and the branch and PR exist, so a fix round skips claiming the
-issue, branching and opening a PR. A finding may be disputed, with a reason and a source; "it works"
-and "it is minor" are not disputes. The reviewer either accepts the dispute, which closes the
-finding, or holds it, which keeps the PR in changes requested. Scope creep found in review becomes a
-new ticket, not a bigger diff.
+The implementer claims the PR first, and reads the claim back as § 2 does, then addresses every
+finding on the same branch, whatever its severity. The issue is already claimed and the branch and
+PR exist, so a fix round skips claiming the issue, branching and opening a PR. A finding may be
+disputed, with a reason and a source; "it works" and "it is minor" are not disputes. The reviewer
+either accepts the dispute, which closes the finding, or holds it, which keeps the PR in changes
+requested. Scope creep found in review becomes a new ticket, not a bigger diff.
 
 When the round is done, swap `status:changes-requested` back to `status:in-review`, then post one PR
 comment that answers each finding: fixed in `<sha>`, naming the test for a behaviour change, or
