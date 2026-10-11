@@ -142,6 +142,20 @@ test('splits findings across requests when they do not fit one, and checks each 
   for (const f of result.findings) assert.equal(f.reason, 'checked');
 });
 
+test('splits many small findings whose questions together pass the whole-request limit', async () => {
+  // Each finding is a few characters of state but carries a question of a few hundred, so 600 of
+  // them sit far inside the 32k state-plus-longest-question limit and far past the 64k one.
+  const tiny = (n) => ({ text: `t${n}`, quote: `q${n}`, source: `s${n}`, excerpt: `e${n}` });
+  const input = Array.from({ length: 600 }, (_, n) => tiny(n));
+  const client = fakeClient();
+  const result = await run(input, { client });
+  assert.equal(result.status, 'ok');
+  assert.ok(client.calls.length > 1, `${client.calls.length} request for 600 questions`);
+  const asked = client.calls.reduce((sum, c) => sum + Object.keys(c.questions).length, 0);
+  assert.equal(asked, 600, 'every finding is asked exactly once');
+  assert.equal(result.findings.length, 600);
+});
+
 test('keeps a finding too large for any request without asking Jev', async () => {
   const client = fakeClient([0.1]);
   const result = await run([finding({ id: 'BIG', excerpt: HUGE }), finding({ id: 'F2' })], { client });
