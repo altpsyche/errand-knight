@@ -64,7 +64,8 @@ number,title,body,labels,author,authorAssociation`, `gh pr comment`, `gh pr edit
 
 ## When a skill says "publish to the issue tracker"
 
-Create a GitHub issue and apply the label the skill names.
+Create a GitHub issue and apply the label the skill names, **plus exactly one `phase:N`**. The
+vendored skills do not know about phase labels, so this line is the only thing that adds them.
 
 ## When a skill says "fetch the relevant ticket"
 
