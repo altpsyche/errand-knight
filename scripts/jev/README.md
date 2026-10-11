@@ -66,6 +66,9 @@ Says which docs to read before working on a ticket or reviewing a PR. It prints 
 below. The agent reads those and skips the rest. It leans towards including, because missing a
 governing ADR costs far more than reading an extra doc.
 
+How the agent uses it is in [`/work`](../../.agents/skills/work/SKILL.md) § 3 and
+[`docs/workflow.md`](../../docs/workflow.md) §§ 2–3.
+
 ```bash
 node scripts/jev/prune-cli.mjs 12                     # a PR, with `gh pr view`, falling back to `gh issue view`
 node scripts/jev/prune-cli.mjs 8 --json               # one JSON object instead

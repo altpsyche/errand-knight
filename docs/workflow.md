@@ -49,8 +49,10 @@ has confirmed the spec's testing seams.
 Claim the ticket as the first write, then read the claim back, so two sessions never collide: the
 earliest open claim wins and the other session backs off, per **Read back a claim** in
 [`docs/agents/issue-tracker.md`](agents/issue-tracker.md). Then branch as `<n>-<slug>`; nothing is
-committed to `main`. Read the ADRs that touch the area. Then drive `/tdd` at the seams agreed during
-planning.
+committed to `main`. Read the ADRs that touch the area: run `node scripts/jev/prune-cli.mjs <n>`
+first and read the docs it lists, `AGENTS.md` first
+([`scripts/jev/README.md`](../scripts/jev/README.md)). If it prints a skip or error line, find them
+as normal. Then drive `/tdd` at the seams agreed during planning.
 
 - Red before green. One slice at a time: one test, one minimal implementation, repeat.
 - `pnpm verify` runs regularly, and once more at the end.
@@ -68,7 +70,9 @@ an Implementer claims a ticket, and posts the report last, after setting the ver
 releases the claim. Two axes, run as parallel sub-agents and reported side by side:
 
 - **Standards** — does the diff follow `AGENTS.md`, `docs/workflow.md`'s checklist below, the ADRs that
-  touch it, and `CODING_STANDARDS.md` once `/retro` has created it?
+  touch it, and `CODING_STANDARDS.md` once `/retro` has created it? To find those ADRs, run
+  `node scripts/jev/prune-cli.mjs <PR number>` first and read the docs it lists; on a skip or error
+  line, find them as normal. The checklist is still applied in full.
 - **Spec** — does it faithfully implement the originating spec, no more and no less?
 
 The reviewer sets the verdict and posts the report as a PR comment; it does not push to the branch.
