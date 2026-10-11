@@ -7,10 +7,10 @@ thinking model does not spend tokens on them. Dev tooling only, never app code
 | File | What it is |
 |---|---|
 | `constants.mjs` | The pinned model id and **every threshold**. Tune them here, in one reviewed edit |
-| `client.mjs` | The shared client: key and SDK checks, one request, never throws. Also `errorLine`, the one redacting error-to-line helper every tool and CLI uses |
-| `triage.mjs` | The triage helper, `run(input, { client })` |
+| `client.mjs` | The shared client: `available()` checks the key and SDK without a request, `ask()` makes one request, and neither throws. Also `errorLine`, the one redacting error-to-line helper every tool and CLI uses |
+| `triage.mjs` | The triage helper, `run(input, { client, root })`. `root` is the repo root the docs are read from; it defaults to this repo, and tests point it at a temp tree |
 | `triage-cli.mjs` | Its CLI |
-| `triage.test.mjs` | Tests at the `run()` seam with a fake client; run by `pnpm scripts:test` |
+| `triage.test.mjs` | Tests at the `run()` seam with a fake client, plus CLI runs as a subprocess with a `gh` stub on PATH; run by `pnpm scripts:test` |
 
 ## Triage helper
 
