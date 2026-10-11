@@ -13,7 +13,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createClient } from './client.mjs';
-import { run } from './prune.mjs';
+import { estimateTokens, run } from './prune.mjs';
 
 const WORK = {
   title: 'Sync outbox retries',
@@ -163,6 +163,74 @@ test('includes a unit too large for one question without asking about it', async
       { path: 'AGENTS.md', reason: 'always' },
       { path: 'docs/adr/0003-huge.md', reason: 'oversize' },
     ]);
+  });
+});
+
+// A work item whose body alone is about 20k tokens, as a long PR description would be.
+const LONG_WORK = { ...WORK, body: 'b'.repeat(60_000) };
+
+test('a unit that fits alone but not beside a large state is included without asking', async () => {
+  // About 15k tokens: under the 32k question limit alone, over it beside the 20k state.
+  const files = { ...BASE, 'docs/adr/0003-mid.md': `MARK-MID ${'x'.repeat(45_000)}` };
+  await withRepo(files, async (root) => {
+    const client = fakeClient({}, 0);
+    const result = await run(LONG_WORK, { client, root });
+    assert.equal(result.status, 'ok');
+    assert.equal(asked(client).filter((q) => q.includes('MARK-MID')).length, 0, 'the unit was asked about');
+    assert.ok(asked(client).some((q) => q.includes('MARK-TOOL')), 'a small unit was not asked about');
+    assert.deepEqual(result.read, [
+      { path: 'AGENTS.md', reason: 'always' },
+      { path: 'docs/adr/0003-mid.md', reason: 'oversize' },
+    ]);
+  });
+});
+
+test("the state's size counts towards every request's limit", async () => {
+  // Five units of about 9k tokens: 46k alone fits one request, beside the 20k state it does not.
+  const files = { ...BASE };
+  for (const n of [3, 4, 5, 6, 7]) files[`docs/adr/000${n}-part.md`] = `MARK-PART-${n} ${'x'.repeat(27_000)}`;
+  await withRepo(files, async (root) => {
+    const client = fakeClient();
+    const result = await run(LONG_WORK, { client, root });
+    assert.equal(result.status, 'ok');
+    assert.equal(client.calls.length, 2);
+    for (const n of [3, 4, 5, 6, 7]) {
+      assert.equal(asked(client).filter((q) => q.includes(`MARK-PART-${n}`)).length, 1, `MARK-PART-${n}`);
+    }
+  });
+});
+
+test('a request of exactly 64k estimated tokens is sent whole, and one token more is split', async () => {
+  // The boundary is the spec's 64k; the sizes are measured with the pruner's own estimator,
+  // padding the last ADR three characters (one estimated token) at a time.
+  const files = {
+    'AGENTS.md': '# Agents\n',
+    'docs/idea.md': '# Idea\n',
+    'docs/adr/0001-a.md': `MARK-A ${'x'.repeat(53_000)}`,
+    'docs/adr/0002-b.md': `MARK-B ${'x'.repeat(53_000)}`,
+    'docs/adr/0003-c.md': `MARK-C ${'x'.repeat(50_000)}`,
+  };
+  const work = { ...WORK, body: 'b'.repeat(30_000) };
+  await withRepo(files, async (root) => {
+    const measure = fakeClient();
+    await run(work, { client: measure, root });
+    assert.equal(measure.calls.length, 1, 'the starting sizes should fit in one request');
+    const [request] = measure.calls;
+    const total = estimateTokens(request.state) + Object.values(request.questions).reduce((n, q) => n + estimateTokens(q), 0);
+    const pad = async (n) => {
+      files['docs/adr/0003-c.md'] += 'x'.repeat(3 * n);
+      await writeFile(path.join(root, 'docs/adr/0003-c.md'), files['docs/adr/0003-c.md']);
+    };
+
+    await pad(64_000 - total);
+    const exact = fakeClient();
+    assert.equal((await run(work, { client: exact, root })).status, 'ok');
+    assert.equal(exact.calls.length, 1, 'exactly 64k was split');
+
+    await pad(1);
+    const over = fakeClient();
+    assert.equal((await run(work, { client: over, root })).status, 'ok');
+    assert.equal(over.calls.length, 2, '64k + 1 was sent whole');
   });
 });
 

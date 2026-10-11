@@ -87,7 +87,8 @@ function question(unit) {
   };
 }
 
-const tokens = (value) => Math.ceil(JSON.stringify(value).length / JEV_CHARS_PER_TOKEN);
+/** A JSON value's size in tokens, estimated at `JEV_CHARS_PER_TOKEN`; the size every limit is checked in. */
+export const estimateTokens = (value) => Math.ceil(JSON.stringify(value).length / JEV_CHARS_PER_TOKEN);
 
 /**
  * Pack questions into as few requests as the limits allow, in order. Every question passed here
@@ -133,10 +134,10 @@ export async function run(input, { client, root = ROOT }) {
       return { status: 'error', reason: 'the work has no title: give an issue or PR number, or pipe it on stdin' };
     }
     const state = { work: { title: input.title, body: input.body ?? '', changed_files: [...(input.files ?? [])] } };
-    const stateTokens = tokens(state);
+    const stateTokens = estimateTokens(state);
 
     const all = (await units(root)).map((unit, i) => ({ id: `u${i}`, unit, question: question(unit) }));
-    for (const ask of all) ask.tokens = tokens(ask.question);
+    for (const ask of all) ask.tokens = estimateTokens(ask.question);
     // Too large to ask about beside the state: include it, since a missed doc costs more than a read.
     const oversize = new Set(all.filter((a) => stateTokens + a.tokens > JEV_QUESTION_TOKENS).map((a) => a.id));
 
