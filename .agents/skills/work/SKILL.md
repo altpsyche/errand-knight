@@ -25,8 +25,9 @@ When it is genuinely unclear, ask. One question, not three.
 Read [`docs/agents/issue-tracker.md`](../../../docs/agents/issue-tracker.md) for how to query.
 Then apply the role's frontier:
 
-- **Implementer** — open issues labelled `ready-for-agent`, oldest first, with no open blocker
-  and no assignee.
+- **Implementer** — first, open PRs labelled `status:changes-requested`, oldest first: a fix
+  round outranks new work. Then open issues labelled `ready-for-agent`, oldest first, with no open
+  blocker and no assignee.
 - **Reviewer** — open PRs labelled `status:in-review`, oldest first.
 - **Planner** — the earliest unfinished Phase in [`docs/idea.md`](../../../docs/idea.md) § Roadmap.
 
@@ -53,6 +54,10 @@ workflow here; the steps below are the glue the skills themselves do not do. Com
    self-check: fix what it finds, but it is not the review. A review by the author is not a review.
 4. **Open the PR**: push, then create it with a body written by `/pr` that contains `Closes #<n>`,
    and label it `status:in-review`. Without that label no Reviewer will find it.
+5. **Fix round**, when the item is a `status:changes-requested` PR: check it out, address every
+   finding on the same branch per [`docs/workflow.md`](../../../docs/workflow.md) § 4, then return
+   it for review: one comment answering each finding (fixed in `<sha>`, or disputed with a source),
+   and the label swapped back to `status:in-review`.
 
 **Reviewer** — a session that did not write the diff.
 
