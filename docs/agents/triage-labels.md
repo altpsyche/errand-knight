@@ -16,6 +16,28 @@ below, in the same edit, whoever filed the issue. Those two states put an issue 
 the vendored `/triage` does not know phase labels exist, so this line is what adds them. If the
 phase is unclear, ask the owner rather than guess.
 
+## Ask Jev first
+
+Before choosing a role or a phase for an issue, run the triage helper
+([`scripts/jev/README.md`](../../scripts/jev/README.md)):
+
+```bash
+node scripts/jev/triage-cli.mjs <number>
+```
+
+It prints one line for the role and one for the phase, each ending in `apply` or `defer`:
+
+- **apply** — apply that label without deliberating.
+- **defer** on the role — decide the role as you normally would.
+- **defer** on the phase — the phase is unclear: ask the owner, per the rule above.
+- **A skip or error line** (`jev triage: skipped, …` or `jev triage: error, …`) — continue as
+  normal, as if the tool did not exist.
+
+The helper only suggests the role and phase labels. Everything else `/triage` does, including
+`needs-triage`, comments and closing, is unchanged.
+
+## Creating the labels
+
 The five role labels are created **before** `/triage` first runs, so it applies existing labels
 instead of inventing near-duplicates. Create them with:
 
