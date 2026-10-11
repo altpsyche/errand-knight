@@ -16,11 +16,15 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '.
 const WORKFLOW_DOC = 'docs/workflow.md';
 const FIELDS = ['text', 'quote', 'source', 'excerpt'];
 
+// How many opening words of a constitution bullet an excerpt must quote to count as citing it.
+const PREFIX_WORDS = 5;
+
 /**
- * The bullets under the review checklist's **The constitution** heading, whitespace-collapsed and
- * lower-cased. Throws when the section is missing or empty, which the caller reports as one line.
+ * The phrases that mark a quote of the review checklist's **The constitution** bullets: each
+ * bullet's sentences and semicolon clauses, and its first PREFIX_WORDS words, all normalised.
+ * Throws when the section is missing or empty, which the caller reports as one line.
  */
-export function constitutionBullets(workflowDoc) {
+export function constitutionPhrases(workflowDoc) {
   const bullets = [];
   let inSection = false;
   for (const line of workflowDoc.split('\n')) {
@@ -29,24 +33,32 @@ export function constitutionBullets(workflowDoc) {
       continue;
     }
     if (/^#/.test(line)) inSection = false;
-    if (inSection && /^\s*[-*] /.test(line)) bullets.push(normalise(line.replace(/^\s*[-*] /, '')));
+    if (inSection && /^\s*[-*] /.test(line)) bullets.push(line.replace(/^\s*[-*] /, ''));
   }
   if (!bullets.length) throw new Error(`${WORKFLOW_DOC} has no bullets under "**The constitution**"`);
-  return bullets;
+  const phrases = new Set();
+  for (const bullet of bullets) {
+    for (const clause of bullet.split(/[.;!?]/)) if (normalise(clause)) phrases.add(normalise(clause));
+    phrases.add(normalise(bullet).split(' ').slice(0, PREFIX_WORDS).join(' '));
+  }
+  return [...phrases];
 }
 
+/** Lower-case words separated by single spaces: punctuation, markup and spacing do not count. */
 function normalise(text) {
-  return text.replace(/\s+/g, ' ').trim().toLowerCase();
+  return text.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
 }
 
 /**
- * A finding cites the constitution when its source names it, or its excerpt quotes one of the
- * constitution's bullets whole. Such a finding is never sent to Jev and never flagged.
+ * A finding cites the constitution when its source names it, or its excerpt quotes any sentence or
+ * clause of a constitution bullet, or a bullet's opening words, ignoring case and punctuation. The
+ * match errs towards exempting: keeping a finding unasked is cheap, flagging a constitution one is
+ * not. Such a finding is never sent to Jev and never flagged.
  */
-function citesConstitution(finding, bullets) {
+function citesConstitution(finding, phrases) {
   if (/constitution/i.test(finding.source)) return true;
-  const excerpt = normalise(finding.excerpt);
-  return bullets.some((bullet) => excerpt.includes(bullet));
+  const excerpt = ` ${normalise(finding.excerpt)} `;
+  return phrases.some((phrase) => excerpt.includes(` ${phrase} `));
 }
 
 /** Checks the input shape; throws one line naming the first problem, so nothing malformed is sent. */
@@ -165,12 +177,12 @@ export async function run(input, { client, root = ROOT }) {
     const ready = await client.available();
     if (ready.status !== 'ok') return ready;
     const findings = validate(input);
-    const bullets = constitutionBullets(await readFile(path.join(root, WORKFLOW_DOC), 'utf8'));
+    const phrases = constitutionPhrases(await readFile(path.join(root, WORKFLOW_DOC), 'utf8'));
 
     const verdicts = new Map();
     const toCheck = [];
     findings.forEach((f, index) => {
-      if (citesConstitution(f, bullets)) {
+      if (citesConstitution(f, phrases)) {
         verdicts.set(f.id, { decision: 'keep', noul: null, reason: 'constitution' });
         return;
       }

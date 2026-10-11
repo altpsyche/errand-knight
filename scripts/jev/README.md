@@ -146,13 +146,16 @@ read against its cited source, support it? Each finding comes back with a decisi
 
 Two kinds of finding are kept without asking Jev, so they are never flagged:
 
-- **Constitution findings** — the `source` mentions "constitution", or the `excerpt` quotes one of
-  the bullets under **The constitution** in [`docs/workflow.md`](../../docs/workflow.md)'s review
-  checklist whole. The bullets are read from that doc on every run; if the section is gone, the
-  tool prints an error line rather than run without the exemption. Nothing else is recognised: a
-  constitution finding cited only through `AGENTS.md` or a partial quote is checked like any
-  other, so cite one as `docs/workflow.md § Review checklist, The constitution`. A Reviewer never
-  drops a constitution-level finding on a flag alone, however it was cited.
+- **Constitution findings** — the `source` mentions "constitution", or the `excerpt` quotes any
+  sentence or semicolon clause of a bullet under **The constitution** in
+  [`docs/workflow.md`](../../docs/workflow.md)'s review checklist, or a bullet's first five words,
+  ignoring case, punctuation and spacing. The match errs towards exempting: keeping a finding
+  unasked costs nothing, flagging a constitution one could cost a violation. The bullets are read
+  from that doc on every run; if the section is gone, the tool prints an error line rather than
+  run without the exemption. A finding that cites the rule only through `AGENTS.md`, in none of the
+  checklist's words, is still checked, so cite one as
+  `docs/workflow.md § Review checklist, The constitution`. A Reviewer never drops a
+  constitution-level finding on a flag alone, however it was cited.
 - **Too large to check** — a finding whose own text, quote and excerpt overflow one request.
 
 How the Reviewer uses it is in [`docs/workflow.md`](../../docs/workflow.md) § 3 and the Reviewer

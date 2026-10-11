@@ -100,6 +100,31 @@ test('never flags a finding whose excerpt quotes a constitution bullet whole, wh
   assert.equal(client.calls.length, 0);
 });
 
+// Realistic citations of the constitution: the checklist named without its section, and the
+// bullet quoted in part, with its punctuation and case changed. Each must be kept unasked.
+for (const [name, excerpt] of [
+  ["a bullet's first sentence only", 'No new outbound network destination.'],
+  ['a bullet without its final period', 'No telemetry, analytics, ads, or monetisation of any kind, including build-flagged'],
+  ["a bullet's later sentence", 'Adding one requires an ADR.'],
+  ["a bullet's clause after a semicolon, in another case", 'THE FRONTEND NEVER HOLDS THAT KEY'],
+  ["the opening words of a bullet, cut mid-sentence", 'No telemetry, analytics, ads, or monetisation…'],
+  ['a whole bullet', 'Imported items never cost HP.'],
+]) {
+  test(`never flags a finding citing the review checklist with ${name}`, async () => {
+    const client = fakeClient([0.05]);
+    const result = await run([finding({ source: 'docs/workflow.md § Review checklist', excerpt })], { client });
+    assert.deepEqual(result.findings, [{ id: 'F1', decision: 'keep', noul: null, reason: 'constitution' }]);
+    assert.equal(client.calls.length, 0);
+  });
+}
+
+test('still checks a finding citing a checklist line outside the constitution', async () => {
+  const client = fakeClient([0.05]);
+  const excerpt = 'No `Manager` suffix; no module without an ADR.';
+  const result = await run([finding({ source: 'docs/workflow.md § Review checklist', excerpt })], { client });
+  assert.deepEqual(result.findings, [{ id: 'F1', decision: 'flag', noul: 0.05, reason: 'checked' }]);
+});
+
 // About 20k tokens of excerpt: one fits a request, two do not.
 const LARGE = 'The renderer must work on both the WebGPU and WebGL2 paths. '.repeat(1000);
 // Far past the 32k state-plus-question limit on its own.
