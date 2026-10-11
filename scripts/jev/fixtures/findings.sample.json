@@ -1,0 +1,23 @@
+[
+  {
+    "id": "F1",
+    "text": "The CLI prints the raw error message instead of going through errorLine, so a message that echoes the API key would print the key.",
+    "quote": "console.log(`request failed: ${error.message}`);",
+    "source": "scripts/jev/client.mjs, errorLine",
+    "excerpt": "The one way any Jev tool turns an error into its one-line reason: the first line of the message, with the key from `env` redacted in case a message ever echoes it. Every tool and CLI uses this, never its own copy."
+  },
+  {
+    "id": "F2",
+    "text": "The flag threshold is hard-coded in the verifier instead of living in the constants file.",
+    "quote": "return { decision: answer.noul < VERIFY_FLAG_BELOW ? 'flag' : 'keep', noul: answer.noul, reason: 'checked' };",
+    "source": "scripts/jev/constants.mjs",
+    "excerpt": "Every tunable number the Jev tools use, and the model they use it with, in one reviewed place."
+  },
+  {
+    "id": "F3",
+    "text": "The new crash reporter sends stack traces to a third-party service on every launch.",
+    "quote": "Sentry.init({ dsn: SENTRY_DSN });",
+    "source": "docs/workflow.md § Review checklist, The constitution",
+    "excerpt": "No telemetry, analytics, ads, or monetisation of any kind, including build-flagged."
+  }
+]

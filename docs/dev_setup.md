@@ -108,8 +108,8 @@ If SSH fails **there** too, it is a genuine host problem and the sandbox diagnos
 
 The dev tooling in [`scripts/jev/`](../scripts/jev/README.md) calls TypeSafe's Jev model to cut
 agent cost, and only that tooling does ([ADR-0004](adr/0004-jev-dev-tooling-only.md)). The triage
-helper and the doc pruner are there today; the rest of spec #4 lands in its later tickets. They
-read the key from `TYPESAFE_API_KEY`:
+helper, the doc pruner and the finding verifier, spec #4's three tools, read the key from
+`TYPESAFE_API_KEY`:
 
 - **Owner's shell only.** Export it in your own shell profile, outside the repo. It is never
   committed, never written to a file in the workspace, and never added as a CI secret.

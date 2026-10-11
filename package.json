@@ -14,7 +14,8 @@
     "skills:check": "node scripts/check-skills.mjs",
     "scripts:test": "node --test \"scripts/**/*.test.mjs\"",
     "jev:triage": "node scripts/jev/triage-cli.mjs",
-    "jev:prune": "node scripts/jev/prune-cli.mjs"
+    "jev:prune": "node scripts/jev/prune-cli.mjs",
+    "jev:verify": "node scripts/jev/verify-cli.mjs"
   },
   "devDependencies": {
     "@typesafe-ai/sdk": "0.6.0"

@@ -79,6 +79,14 @@ The reviewer sets the verdict and posts the report as a PR comment; it does not 
 Every finding names its source and quotes the line it is about. The Implementer's own `/review-pr` run
 at the end of `/implement` is a self-check, not this step.
 
+After drafting the report and before setting the verdict, the Reviewer runs the finding verifier
+on the draft findings, as [`scripts/jev/README.md`](../scripts/jev/README.md) § Finding verifier
+describes. A finding it flags gets one re-read of its cited source, after which the Reviewer keeps
+or drops it; the tool never drops a finding, and a constitution-level finding is never dropped on
+a flag alone. An error line naming a finding means the findings file is malformed, so the Reviewer
+fixes it and runs once more; on any other error or skip line, the Reviewer continues as normal.
+Every finding still in the report counts towards the verdict below.
+
 **The verdict is strict.** `status:approved` means the report has zero open findings. Any finding at
 all, including a judgement call, a low-severity edge case or a nit, sets `status:changes-requested`.
 There is no "non-blocking" finding and no "approve, but consider…": a finding worth writing down is
