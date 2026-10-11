@@ -45,8 +45,9 @@ test('defers a label below the threshold and applies one exactly at it', async (
 });
 
 // The real shared client, with its two boundaries injected: the environment and the SDK import.
-// `sent` records every request that reaches it, so a test can prove none did.
-function realClient({ env, sdkImport }) {
+// `sent` records every request that reaches the fake SDK; `systemOne` replaces its answer, and by
+// default any request is an error, so a skip test proves none was sent.
+function realClient({ env, sdkImport, systemOne }) {
   const sent = [];
   const loads = [];
   const importSdk = async () => {
@@ -54,8 +55,9 @@ function realClient({ env, sdkImport }) {
     if (sdkImport) return sdkImport();
     return {
       TypeSafeClient: class {
-        systemOne(request) {
+        async systemOne(request) {
           sent.push(request);
+          if (systemOne) return systemOne(request);
           throw new Error('a skipped run must not reach the SDK');
         }
       },
@@ -85,4 +87,33 @@ test('skips without calling Jev when the SDK is not installed', async () => {
   assert.equal(decision.status, 'skipped');
   assert.match(decision.reason, /@typesafe-ai\/sdk/);
   assert.equal(sent.length, 0);
+});
+
+const KEY = 'tsk-test-0123456789';
+
+test('reports a failed request as one error line with the key redacted', async () => {
+  const { client, sent } = realClient({
+    env: { TYPESAFE_API_KEY: KEY },
+    systemOne: () => {
+      throw new Error(`401 invalid key ${KEY}\nrequest body follows`);
+    },
+  });
+  const decision = await run(ISSUE, { client });
+  assert.equal(decision.status, 'error');
+  assert.equal(sent.length, 1);
+  assert.ok(!decision.reason.includes(KEY), `key leaked: ${decision.reason}`);
+  assert.ok(!decision.reason.includes('\n'), 'reason is more than one line');
+});
+
+test('reports an SDK that fails to load, other than a missing module, as a redacted error', async () => {
+  const broken = () => {
+    const error = new Error(`SyntaxError while loading, env had ${KEY}`);
+    error.code = 'ERR_INVALID_PACKAGE_CONFIG';
+    throw error;
+  };
+  const { client, sent } = realClient({ env: { TYPESAFE_API_KEY: KEY }, sdkImport: broken });
+  const decision = await run(ISSUE, { client });
+  assert.equal(decision.status, 'error');
+  assert.equal(sent.length, 0);
+  assert.ok(!decision.reason.includes(KEY), `key leaked: ${decision.reason}`);
 });
