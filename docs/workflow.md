@@ -64,7 +64,8 @@ made stale is corrected in the same commit, and a PR whose body says `Closes #<n
 Run by a session that did not write the diff. Two axes, run as parallel sub-agents and reported side
 by side:
 
-- **Standards** — does the diff follow `AGENTS.md`, `docs/workflow.md`'s checklist below, and the ADRs?
+- **Standards** — does the diff follow `AGENTS.md`, `docs/workflow.md`'s checklist below, the ADRs that
+  touch it, and `CODING_STANDARDS.md` once `/retro` has created it?
 - **Spec** — does it faithfully implement the originating spec, no more and no less?
 
 The reviewer posts the report as a PR comment and sets the verdict; it does not push to the branch.
