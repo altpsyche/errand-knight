@@ -1,5 +1,6 @@
-// Tests for the triage helper, at its one seam: `run(input, { client })`. A fake client returns
-// canned Jev answers; nothing here touches the network or needs a key.
+// Tests for the triage helper. Most drive its seam, `run(input, { client, root })`, with a fake
+// client returning canned Jev answers; a few run the CLI as an agent would, with a `gh` stub on
+// PATH. Nothing here reaches Jev or needs a real key.
 
 import { spawnSync } from 'node:child_process';
 import { test } from 'node:test';
