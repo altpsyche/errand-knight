@@ -57,8 +57,10 @@ workflow here; the steps below are the glue the skills themselves do not do. Com
 **Reviewer** — a session that did not write the diff.
 
 1. `/review-pr` with `main` as the fixed point. Its standards sources here are `AGENTS.md`, the
-   review checklist in [`docs/workflow.md`](../../../docs/workflow.md), and the ADRs that touch the
-   diff; there is no `CODING_STANDARDS.md`. The originating spec is the issue in `Closes #<n>`.
+   review checklist in [`docs/workflow.md`](../../../docs/workflow.md), the ADRs that touch the
+   diff, and `CODING_STANDARDS.md` if `/retro` has created it. The originating spec is the issue
+   in `Closes #<n>`. When the PR closes no issue, review the Spec axis against the PR body, say so
+   in the report, and flag the missing issue as a finding; do not stop to ask.
 2. **Post the report** on the PR as a comment. A finding that stays in the chat does not exist.
 3. **Set the state**: swap `status:in-review` for `status:changes-requested` or `status:approved`.
    Never push to the branch.

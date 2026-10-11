@@ -27,6 +27,9 @@ the GitHub issue wins.
   `gh pr edit <number> --remove-label status:in-review --add-label status:changes-requested` (or
   `status:approved`). GitHub forbids approving your own PR and every session is the owner's account,
   so the label, not a GitHub review, carries the verdict.
+- **Return a PR for review** after a fix round: reply to the review with a comment that answers
+  each finding (fixed in `<sha>`, or disputed with a source), then
+  `gh pr edit <number> --remove-label status:changes-requested --add-label status:in-review`.
 
 `gh` infers the repo from `git remote -v` when run inside the clone.
 
