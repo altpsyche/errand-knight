@@ -29,16 +29,21 @@ jobs:
           if [ -f src-tauri/Cargo.toml ]; then echo "rust=true" >> "$GITHUB_OUTPUT"; else echo "rust=false" >> "$GITHUB_OUTPUT"; fi
           if [ -f vite.config.ts ]; then echo "web=true" >> "$GITHUB_OUTPUT"; else echo "web=false" >> "$GITHUB_OUTPUT"; fi
 
-  # Always runs. Checks the agent layer (skill frontmatter, links, AGENTS.md budget) and its tests.
+  # Always runs. Checks the agent layer (skill frontmatter, links, AGENTS.md budget) and the script
+  # tests. The checker runs before the install, which proves it stays dependency-free; the tests run
+  # after it, because the Jev tools' tests import their modules. No step calls Jev: CI has no key.
   agent-layer:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+          cache: pnpm
       - run: node scripts/check-skills.mjs
-      - run: node --test scripts/check-skills.test.mjs
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run scripts:test
 
   rust:
     needs: detect

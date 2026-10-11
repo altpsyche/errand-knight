@@ -164,4 +164,18 @@ settings:
 
 importers:
 
-  .: {}
+  .:
+    devDependencies:
+      '@typesafe-ai/sdk':
+        specifier: 0.6.0
+        version: 0.6.0
+
+packages:
+
+  '@typesafe-ai/sdk@0.6.0':
+    resolution: {integrity: sha512-IddX+Q0XM+VagOUZFeP7wZjaO4SHMdvnh2zEBdrZZnXedWI3BNK1lKhMx3ayrkFWvVLbVcUHJy6AVZlY+e6Jaw==}
+    engines: {node: '>=20'}
+
+snapshots:
+
+  '@typesafe-ai/sdk@0.6.0': {}
