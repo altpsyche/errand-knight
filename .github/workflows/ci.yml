@@ -29,7 +29,7 @@ jobs:
           if [ -f src-tauri/Cargo.toml ]; then echo "rust=true" >> "$GITHUB_OUTPUT"; else echo "rust=false" >> "$GITHUB_OUTPUT"; fi
           if [ -f vite.config.ts ]; then echo "web=true" >> "$GITHUB_OUTPUT"; else echo "web=false" >> "$GITHUB_OUTPUT"; fi
 
-  # Always runs. Checks the agent layer: skill frontmatter, pointer integrity, AGENTS.md budget.
+  # Always runs. Checks the agent layer (skill frontmatter, links, AGENTS.md budget) and its tests.
   agent-layer:
     runs-on: ubuntu-latest
     steps:
@@ -38,6 +38,7 @@ jobs:
         with:
           node-version: 22
       - run: node scripts/check-skills.mjs
+      - run: node --test scripts/check-skills.test.mjs
 
   rust:
     needs: detect
