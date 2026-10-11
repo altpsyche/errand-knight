@@ -36,25 +36,30 @@ with `--local` (writes `<repo>/.git/config`, inside the workspace) and never `--
 
 ## Git and GitHub from an agent session
 
-### The SSH workaround
+### SSH: the one-line global fix
 
 The system SSH config includes `/etc/ssh/ssh_config.d/*.conf`, and the whole include chain fails the
-ownership check above. Passing `-F` makes `ssh` ignore the system-wide config entirely (per `ssh(1)`),
-which sidesteps it. Verify:
+ownership check above, so every git operation over SSH dies. `-F` makes `ssh` ignore the system-wide
+config entirely (per `ssh(1)`), which sidesteps the include. Set it **globally**:
 
 ```bash
-ssh -F /dev/null -T git@github.com                 # expect: "Hi <user>! You've successfully authenticated"
+git config --global core.sshCommand "ssh -F /dev/null"
 ```
 
-Apply it per repo, so SSH remotes keep working from inside agent sessions:
+**Already set on this machine**, and `~/.gitconfig` is tracked in the dotfiles bare repo
+(`~/.dotfiles` → `altpsyche/cachy-hyprland-setup`), so a fresh install restores it. This is the whole
+reason the fix is global: a per-repo `core.sshCommand` costs one edit per clone and silently misses
+every repo you have not visited yet. A new machine needs only `~/.gitconfig`.
+
+`core.sshCommand` affects only git. Interactive `ssh` is untouched, so normal SSH use is unchanged. It
+does skip all system-wide ssh config, including the drop-in directory — which is the point.
+
+Verify against a repo that has **no** local `core.sshCommand`, or the check proves nothing:
 
 ```bash
-git -C <repo> config --local core.sshCommand "ssh -F /dev/null"
+ssh -F /dev/null -T git@github.com          # "Hi <user>! You've successfully authenticated"
+git -C <any-repo> ls-remote origin HEAD     # succeeds with no per-repo config
 ```
-
-`errand-knight` already has this set, and its `origin` is SSH.
-
-The fix is the same everywhere: one line, set globally, covers every repo and every clone.
 
 ### Pushing workflow files
 
