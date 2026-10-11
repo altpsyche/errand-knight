@@ -14,14 +14,20 @@ the GitHub issue wins.
 - **Read**: `gh issue view <number> --comments`, also fetching labels:
   `gh issue view <n> --json number,title,body,labels,comments`.
 - **List**: `gh issue list --state open --json number,title,body,labels,assignees --jq '[.[] | {number, title, labels: [.labels[].name], assignees: [.assignees[].login]}]'`
-- **List PRs** for a PR frontier, open and carrying one label, oldest first:
-  `gh pr list --state open --label <label> --json number,title,createdAt --jq 'sort_by(.createdAt) | .[] | {number, title}'`
+- **List PRs** for a PR frontier, open, carrying one label and unclaimed, oldest first:
+  `gh pr list --state open --label <label> --json number,title,createdAt,comments --jq 'sort_by(.createdAt) | map(select(.comments | last | .body // "" | startswith("Claimed:") | not)) | .[] | {number, title}'`
 - **Comment**: `gh issue comment <number> --body "..."`
 - **Label**: `gh issue edit <number> --add-label "..."` / `--remove-label "..."`
 - **Close**: `gh issue close <number> --comment "..."`
 - **Claim**: `gh issue edit <number> --add-assignee @me` then
   `gh issue comment <number> --body "Claimed: branch <number>-<slug>"`. Every session shares the
   owner's account, so the comment is the claim; the assignee only hides the issue from the frontier.
+- **Claim a PR** for a review or a fix round: `gh pr comment <number> --body "Claimed: review"` or
+  `--body "Claimed: fix round"`. A PR is claimed while its newest comment starts with `Claimed:`,
+  which is what **List PRs** filters on. The session posts nothing else until its report or its
+  answer to the findings, which it posts after the label swap, and that comment releases the
+  claim. Any other comment releases it too, so the owner frees a claim left by a dead session by
+  commenting.
 - **Branch**: `git fetch origin` then `git switch -c <number>-<slug> origin/main`. Branch from
   `origin/main`, not a local `main` that may be stale.
 - **Open a PR**: `git push -u origin HEAD` then
@@ -29,13 +35,15 @@ the GitHub issue wins.
   `Closes #<number>` so merging closes the issue.
 - **Check out a PR** for review or a fix round: `git fetch origin` then `gh pr checkout <number>`.
   A Reviewer uses `origin/main`, not `main`, as the fixed point.
-- **Post a review**: `gh pr comment <number> --body-file <file>`, then
+- **Post a review**:
   `gh pr edit <number> --remove-label status:in-review --add-label status:changes-requested` (or
-  `status:approved` when the report has zero open findings). GitHub forbids approving your own PR and every session is the owner's account,
-  so the label, not a GitHub review, carries the verdict.
+  `status:approved` when the report has zero open findings), then
+  `gh pr comment <number> --body-file <file>`. The label goes first so the report, which releases
+  the claim, is the last write. GitHub forbids approving your own PR and every session is the
+  owner's account, so the label, not a GitHub review, carries the verdict.
 - **Return a PR for review** after a fix round, per [`docs/workflow.md`](../workflow.md) § 4:
-  `gh pr comment <number> --body-file <file>` with the answer to each finding, then
-  `gh pr edit <number> --remove-label status:changes-requested --add-label status:in-review`.
+  `gh pr edit <number> --remove-label status:changes-requested --add-label status:in-review`, then
+  `gh pr comment <number> --body-file <file>` with the answer to each finding.
 
 `gh` infers the repo from `git remote -v` when run inside the clone.
 

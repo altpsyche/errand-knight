@@ -61,14 +61,15 @@ made stale is corrected in the same commit, and a PR whose body says `Closes #<n
 
 ### 3. Review (Reviewer) — `/review-pr`
 
-Run by a session that did not write the diff. Two axes, run as parallel sub-agents and reported side
-by side:
+Run by a session that did not write the diff. It claims the PR first, as an Implementer claims a
+ticket, and posts the report last, after setting the verdict; the report releases the claim. Two
+axes, run as parallel sub-agents and reported side by side:
 
 - **Standards** — does the diff follow `AGENTS.md`, `docs/workflow.md`'s checklist below, the ADRs that
   touch it, and `CODING_STANDARDS.md` once `/retro` has created it?
 - **Spec** — does it faithfully implement the originating spec, no more and no less?
 
-The reviewer posts the report as a PR comment and sets the verdict; it does not push to the branch.
+The reviewer sets the verdict and posts the report as a PR comment; it does not push to the branch.
 Every finding names its source and quotes the line it is about. The Implementer's own `/review-pr` run
 at the end of `/implement` is a self-check, not this step.
 
@@ -81,14 +82,16 @@ reviewed in full, so new findings start another round.
 
 ### 4. Fix rounds
 
-The implementer addresses every finding on the same branch, whatever its severity. A finding may be
-disputed, with a reason and a source; "it works" and "it is minor" are not disputes. The reviewer either
-accepts the dispute, which closes the finding, or holds it, which keeps the PR in changes requested.
-Scope creep found in review becomes a new ticket, not a bigger diff.
+The implementer claims the PR first, then addresses every finding on the same branch, whatever its
+severity. The issue is already claimed and the branch and PR exist, so a fix round skips claiming the
+issue, branching and opening a PR. A finding may be disputed, with a reason and a source; "it works"
+and "it is minor" are not disputes. The reviewer either accepts the dispute, which closes the
+finding, or holds it, which keeps the PR in changes requested. Scope creep found in review becomes a
+new ticket, not a bigger diff.
 
-When the round is done, post one PR comment that answers each finding: fixed in `<sha>`, naming the
-test for a behaviour change, or disputed with a reason and a source. Then swap
-`status:changes-requested` back to `status:in-review`.
+When the round is done, swap `status:changes-requested` back to `status:in-review`, then post one PR
+comment that answers each finding: fixed in `<sha>`, naming the test for a behaviour change, or
+disputed with a reason and a source. That comment is the last write, and it releases the claim.
 
 ### 5. Merge and learn (Owner)
 

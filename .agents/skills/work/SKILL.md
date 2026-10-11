@@ -25,10 +25,10 @@ When it is genuinely unclear, ask. One question, not three.
 Read [`docs/agents/issue-tracker.md`](../../../docs/agents/issue-tracker.md) for how to query.
 Then apply the role's frontier:
 
-- **Implementer** — first, open PRs labelled `status:changes-requested`, oldest first: a fix
-  round outranks new work. Then open issues labelled `ready-for-agent`, oldest first, with no open
-  blocker and no assignee.
-- **Reviewer** — open PRs labelled `status:in-review`, oldest first.
+- **Implementer** — first, unclaimed open PRs labelled `status:changes-requested`, oldest first:
+  a fix round outranks new work. Then open issues labelled `ready-for-agent`, oldest first, with
+  no open blocker and no assignee.
+- **Reviewer** — unclaimed open PRs labelled `status:in-review`, oldest first.
 - **Planner** — the earliest unfinished Phase in [`docs/idea.md`](../../../docs/idea.md) § Roadmap.
 
 State the item in one line with its number and title, plus the one-sentence reason it is next.
@@ -44,7 +44,7 @@ Hand off to the skill the role's step names in `docs/workflow.md`. Do not re-imp
 workflow here; the steps below are the glue the skills themselves do not do. Commands are in
 [`docs/agents/issue-tracker.md`](../../../docs/agents/issue-tracker.md).
 
-**Implementer**
+**Implementer, on an issue** — steps 1 to 4.
 
 1. **Claim**, as the first write after confirmation: assign yourself and comment
    `Claimed: branch <n>-<slug>`. Every session runs as the owner's account, so the comment, not
@@ -54,23 +54,30 @@ workflow here; the steps below are the glue the skills themselves do not do. Com
    self-check: fix what it finds, but it is not the review. A review by the author is not a review.
 4. **Open the PR**: push, then create it with a body written by `/pr` that contains `Closes #<n>`,
    and label it `status:in-review`. Without that label no Reviewer will find it.
-5. **Fix round**, when the item is a `status:changes-requested` PR: check it out, then run
-   [`docs/workflow.md`](../../../docs/workflow.md) § 4 on the same branch, through the answering
-   comment and the label swap. Without that label no Reviewer will find it.
+
+**Implementer, on a `status:changes-requested` PR: a fix round** — skip steps 1 to 4 above. The
+issue is already claimed, and the branch and the PR already exist.
+
+1. **Claim the PR**, as the first write after confirmation: comment `Claimed: fix round`.
+2. **Check it out**, then run [`docs/workflow.md`](../../../docs/workflow.md) § 4 on the same
+   branch, through the label swap and then the answering comment, which releases the claim.
+   Without that label no Reviewer will find it.
 
 **Reviewer** — a session that did not write the diff.
 
-1. **Check out the PR** after fetching. `review-pr` diffs against `HEAD`, so reviewing from `main`
+1. **Claim the PR**, as the first write after confirmation: comment `Claimed: review`.
+2. **Check out the PR** after fetching. `review-pr` diffs against `HEAD`, so reviewing from `main`
    gives an empty diff, and a stale local `main` adds already-merged commits to it.
-2. `/review-pr` with `origin/main` as the fixed point. Its standards sources here are `AGENTS.md`, the
+3. `/review-pr` with `origin/main` as the fixed point. Its standards sources here are `AGENTS.md`, the
    review checklist in [`docs/workflow.md`](../../../docs/workflow.md), the ADRs that touch the
    diff, and `CODING_STANDARDS.md` if `/retro` has created it. The originating spec is the issue
    in `Closes #<n>`. When the PR closes no issue, review the Spec axis against the PR body, say so
    in the report, and flag the missing issue as a finding; do not stop to ask.
-3. **Post the report** on the PR as a comment. A finding that stays in the chat does not exist.
 4. **Set the state**: swap `status:in-review` for `status:approved` only when no finding is open.
    Any finding, however minor, means `status:changes-requested`; see the verdict rule in
    [`docs/workflow.md`](../../../docs/workflow.md) § 3. Never push to the branch.
+5. **Post the report** on the PR as a comment. It is the last write, so it releases the claim only
+   once the label is set. A finding that stays in the chat does not exist.
 
 **Planner** → `/grill-with-docs`, then `/to-spec` and `/to-tickets`.
 
