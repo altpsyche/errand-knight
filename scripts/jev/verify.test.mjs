@@ -60,7 +60,7 @@ test('keeps a supported finding and flags an unsupported one, in one request of 
 });
 
 test('flags just below the threshold and keeps exactly at it', async () => {
-  const client = fakeClient([0.49, 0.5]);
+  const client = fakeClient([0.69, 0.7]);
   const result = await run([finding({ id: 'A' }), finding({ id: 'B' })], { client });
   assert.equal(result.status, 'ok');
   assert.deepEqual(

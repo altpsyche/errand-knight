@@ -140,9 +140,14 @@ Checks a Reviewer's draft findings before the report is posted: does each findin
 read against its cited source, support it? Each finding comes back with a decision:
 
 - **keep** — Jev's Noul (the probability that the source supports the finding) is at or above
-  `VERIFY_FLAG_BELOW` (0.5).
+  `VERIFY_FLAG_BELOW` (0.7).
 - **flag** — below it. Re-read the cited source once, then keep or drop the finding yourself. The
   tool never removes a finding.
+
+The threshold was set from one live sample, the fixture below: its supported finding scored 0.89
+and its unsupported one 0.61, so the first guess of 0.5 kept both. A flag costs only one re-read,
+while a kept false finding costs a fix round, so the threshold errs towards flagging. Retune it in
+`constants.mjs` as more live runs come in.
 
 Two kinds of finding are kept without asking Jev, so they are never flagged:
 
