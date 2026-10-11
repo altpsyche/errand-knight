@@ -3,7 +3,7 @@
 //
 //   node scripts/jev/triage-cli.mjs <issue-number> [--json]   reads the issue with `gh issue view`
 //   gh issue view 3 --json title,body | node scripts/jev/triage-cli.mjs [--json]
-//   node scripts/jev/triage-cli.mjs [--json] < issue.txt       first line is the title, the rest the body
+//   node scripts/jev/triage-cli.mjs [--json] < issue.txt       first non-blank line is the title, the rest the body
 //
 // Always exits 0: a skip or an error is one line on stdout, and the caller triages as normal.
 
@@ -32,7 +32,7 @@ function readIssue() {
   } catch {
     // Not JSON: plain text, read below.
   }
-  const [title, ...rest] = text.split('\n');
+  const [title, ...rest] = text.trim().split('\n');
   return { title: title.trim(), body: rest.join('\n').trim() };
 }
 

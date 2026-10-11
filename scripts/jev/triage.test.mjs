@@ -175,3 +175,21 @@ test('the CLI prints the skip line without calling gh when there is no key', asy
   assert.equal(stdout, 'jev triage: skipped, TYPESAFE_API_KEY is not set; triage as normal\n');
   assert.deepEqual(ghCalls, []);
 });
+
+test('an issue with no title or body is an error and never reaches Jev', async () => {
+  const client = fakeClient(
+    { choice: 'needs-info', confidence: 0.9 },
+    { choice: 'phase:0', confidence: 0.9 },
+  );
+  const decision = await run({ title: '  ', body: '\n' }, { client });
+  assert.equal(decision.status, 'error');
+  assert.equal(client.calls.length, 0);
+});
+
+test('the CLI turns empty stdin into one error line, exit 0, with no request', async () => {
+  // A dead base URL: if the empty issue were sent, it would fail here rather than reach Jev.
+  const env = { TYPESAFE_API_KEY: 'dummy-key', TYPESAFE_BASE_URL: 'http://127.0.0.1:9' };
+  const { status, stdout } = await runCli([], { env, stdin: '  \n\n' });
+  assert.equal(status, 0);
+  assert.match(stdout, /^jev triage: error, [^\n]*no title[^\n]*\n$/);
+});

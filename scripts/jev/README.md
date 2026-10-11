@@ -27,7 +27,7 @@ How the agent uses it is in [`docs/agents/triage-labels.md`](../../docs/agents/t
 node scripts/jev/triage-cli.mjs 3                     # reads issue #3 with `gh issue view`
 node scripts/jev/triage-cli.mjs 3 --json              # one JSON object instead
 gh issue view 3 --json title,body | node scripts/jev/triage-cli.mjs
-node scripts/jev/triage-cli.mjs < issue.txt           # plain text: first line title, rest body
+node scripts/jev/triage-cli.mjs < issue.txt           # plain text: first non-blank line title, rest body
 pnpm run --silent jev:triage 3                        # the same, through pnpm
 ```
 
@@ -61,9 +61,10 @@ installed (`pnpm install` not run), it makes no request, prints one line and exi
 jev triage: skipped, TYPESAFE_API_KEY is not set; triage as normal
 ```
 
-Any other failure (network, an API error, `gh` failing, a doc that no longer parses) prints one
-`jev triage: error, …` line and also exits 0. Nothing here fails the caller's workflow; the caller
-carries on as it would without the tool. The key comes from the owner's shell only
+Any other failure prints one `jev triage: error, …` line and also exits 0: network, an API error,
+`gh` failing, a doc that no longer parses, or an issue with no title (such as empty stdin), which
+is never sent to Jev. Nothing here fails the caller's workflow; the caller carries on as it would
+without the tool. The key comes from the owner's shell only
 ([`docs/dev_setup.md`](../../docs/dev_setup.md) § The TypeSafe dev key) and is never printed.
 
 ## The SDK

@@ -115,6 +115,10 @@ export async function run(input, { client, root = ROOT }) {
     // Before any other work, so a keyless run skips even when a doc no longer parses.
     const ready = await client.available();
     if (ready.status !== 'ok') return ready;
+    // An empty issue (often a forgotten number with an empty, non-TTY stdin) must not get a label.
+    if (!input?.title?.trim()) {
+      return { status: 'error', reason: 'the issue has no title: give an issue number, or pipe the issue on stdin' };
+    }
     const { roles, phases } = await readDocs(root);
     const state = { issue: { title: input.title, body: input.body ?? '' } };
     const result = await client.ask({ state, questions: questions(roles, phases) });
