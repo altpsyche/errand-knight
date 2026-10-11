@@ -4,7 +4,7 @@
 import { spawnSync } from 'node:child_process';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { chmod, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { chmod, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -192,4 +192,53 @@ test('the CLI turns empty stdin into one error line, exit 0, with no request', a
   const { status, stdout } = await runCli([], { env, stdin: '  \n\n' });
   assert.equal(status, 0);
   assert.match(stdout, /^jev triage: error, [^\n]*no title[^\n]*\n$/);
+});
+
+// A repo root holding this repo's two docs, with the triage labels doc passed through `edit`.
+const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
+
+async function withDocs(edit, fn) {
+  const root = await mkdtemp(path.join(tmpdir(), 'jev-docs-'));
+  try {
+    await mkdir(path.join(root, 'docs', 'agents'), { recursive: true });
+    const labels = await readFile(path.join(REPO, 'docs/agents/triage-labels.md'), 'utf8');
+    await writeFile(path.join(root, 'docs/agents/triage-labels.md'), edit(labels));
+    await writeFile(path.join(root, 'docs/idea.md'), await readFile(path.join(REPO, 'docs/idea.md'), 'utf8'));
+    await fn(root);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+}
+
+test('role options follow the label column of the triage labels table', async () => {
+  const rename = (doc) => doc.replace('| `ready-for-agent` | `ready-for-agent` |', '| `ready-for-agent` | `agent-ready` |');
+  await withDocs(rename, async (root) => {
+    const client = fakeClient(
+      { choice: 'agent-ready', confidence: 0.9 },
+      { choice: 'phase:0', confidence: 0.9 },
+    );
+    const decision = await run(ISSUE, { client, root });
+    assert.equal(decision.status, 'ok');
+    assert.deepEqual(Object.keys(client.calls[0].questions.role.criteria).sort(), [
+      'agent-ready',
+      'needs-info',
+      'ready-for-human',
+      'wontfix',
+    ]);
+  });
+});
+
+test('a triage table row outside the five canonical roles is an error, not silently dropped', async () => {
+  const addRow = (doc) =>
+    doc.replace('| `wontfix` | `wontfix` |', '| `duplicate` | `duplicate` | Already tracked elsewhere |\n| `wontfix` | `wontfix` |');
+  await withDocs(addRow, async (root) => {
+    const client = fakeClient(
+      { choice: 'wontfix', confidence: 0.9 },
+      { choice: 'phase:0', confidence: 0.9 },
+    );
+    const decision = await run(ISSUE, { client, root });
+    assert.equal(decision.status, 'error');
+    assert.match(decision.reason, /duplicate/);
+    assert.equal(client.calls.length, 0);
+  });
 });

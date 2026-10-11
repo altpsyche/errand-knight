@@ -45,8 +45,10 @@ Jev sees the issue's title and body as state, and two Choice questions asked in 
 options are read from the authoritative docs on every run rather than copied here, so a roadmap or
 label edit cannot drift out of sync with the tool:
 
-- **Role** — the "Meaning" column of the table in `docs/agents/triage-labels.md`. `needs-triage`
-  is the state being left, so it is never suggested.
+- **Role** — the rows of the table in `docs/agents/triage-labels.md`: each row's label (second
+  column) with its "Meaning". Every row must name one of the five canonical roles in its first
+  column, and all five must be there; a new or missing role is an error line, never silently
+  dropped. `needs-triage` is the state being left, so its label is never suggested.
 - **Phase** — each `### Phase N — Title` heading under `docs/idea.md` § Roadmap, with its bullets.
 
 If either doc stops matching that shape, the tool prints an error line and exits 0.

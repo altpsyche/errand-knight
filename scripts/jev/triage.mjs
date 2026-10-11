@@ -14,24 +14,34 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '.
 const LABELS_DOC = 'docs/agents/triage-labels.md';
 const IDEA_DOC = 'docs/idea.md';
 
-// `needs-triage` is the state being left, so it is never a suggestion.
-const ROLES = ['needs-info', 'ready-for-agent', 'ready-for-human', 'wontfix'];
+// The five canonical triage roles the vendored skills speak in. The table maps each to this repo's
+// label string; `needs-triage` is the state being left, so its label is never a suggestion.
+const CANONICAL_ROLES = ['needs-triage', 'needs-info', 'ready-for-agent', 'ready-for-human', 'wontfix'];
+const LEAVING = 'needs-triage';
 
 /**
- * Role criteria from the triage labels table: each label mapped to its "Meaning" cell.
- * Throws when a role is missing, which the caller reports as a one-line error.
+ * Role criteria from the triage labels table: each row's label (second column) mapped to its
+ * "Meaning" cell, for every canonical role but `needs-triage`. Throws when a row names a role
+ * outside the canonical five, or a canonical role has no row, which the caller reports as one line.
  */
 export function roleCriteria(labelsDoc) {
-  const meanings = {};
+  const rows = new Map();
   for (const line of labelsDoc.split('\n')) {
     const cells = line.split('|').map((c) => c.trim());
-    // | role | `label` | meaning |  →  ['', role, `label`, meaning, '']
+    // | `role` | `label` | meaning |  →  ['', `role`, `label`, meaning, '']
+    const role = /^`([^`]+)`$/.exec(cells[1] ?? '')?.[1];
     const label = /^`([^`]+)`$/.exec(cells[2] ?? '')?.[1];
-    if (cells.length >= 5 && label && ROLES.includes(label)) meanings[label] = cells[3];
+    if (cells.length < 5 || !role || !label) continue;
+    if (!CANONICAL_ROLES.includes(role)) {
+      throw new Error(`${LABELS_DOC} has a row for \`${role}\`, which is not one of the five triage roles`);
+    }
+    rows.set(role, { label, meaning: cells[3] });
   }
-  const missing = ROLES.filter((r) => !meanings[r]);
-  if (missing.length) throw new Error(`${LABELS_DOC} has no meaning for ${missing.join(', ')}`);
-  return meanings;
+  const missing = CANONICAL_ROLES.filter((r) => !rows.get(r)?.meaning);
+  if (missing.length) throw new Error(`${LABELS_DOC} has no row for ${missing.join(', ')}`);
+  const criteria = {};
+  for (const [role, { label, meaning }] of rows) if (role !== LEAVING) criteria[label] = meaning;
+  return criteria;
 }
 
 /**
