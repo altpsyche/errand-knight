@@ -84,6 +84,8 @@ Each of these is decided and load-bearing. Sources are authoritative; read them 
 - Do not add a telemetry, analytics, crash-reporting, or "anonymous usage" SDK. This includes
   privacy-friendly ones and anything enabled by a build flag.
 - Do not call the AI provider from the frontend webview. Keys and egress belong in Rust (ADR-0002).
+- Do not use TypeSafe/Jev in app code. It is fenced to repo dev tooling; app use is undecided and
+  belongs to the AI work under ADR-0002 (ADR-0004).
 - Do not add a `Manager` suffix, and do not add a module without an ADR.
 
 ## ADRs — `docs/adr/`
@@ -92,7 +94,8 @@ Read the full ADR when it governs your work; the file is the authority, this is 
 
 - **Accepted:** [0001](docs/adr/0001-agentic-development-workflow.md) agentic development workflow ·
   [0002](docs/adr/0002-optional-ai-bring-your-own-key.md) optional AI, bring your own key ·
-  [0003](docs/adr/0003-android-exact-alarms.md) Android exact alarms
+  [0003](docs/adr/0003-android-exact-alarms.md) Android exact alarms ·
+  [0004](docs/adr/0004-jev-dev-tooling-only.md) Jev in dev tooling only
 - **Pending:** the open questions in [`docs/idea.md`](docs/idea.md) §12 stay there until one is
   decided. A decided question gets a number here and a file in `docs/adr/`.
 
