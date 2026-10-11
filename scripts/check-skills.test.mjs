@@ -159,3 +159,49 @@ test('a broken link in any root-level markdown file is reported', () =>
     const { errors } = await checkRepo(root);
     assert.deepEqual(errors, ['GLOSSARY.md: broken relative link -> ./nope.md']);
   }));
+
+test('code spans pair backtick runs of equal length', () => {
+  assert.deepEqual(relativeLinks('A `` ` `` tick. See [a](./after-double.md) and `x`.\n'), ['./after-double.md']);
+  assert.deepEqual(relativeLinks('A stray ` here.\n\nSee [b](./after-stray.md).\n'), ['./after-stray.md']);
+  // CommonMark §6.1: a code span binds tighter than a link, so this link is code.
+  assert.deepEqual(relativeLinks('A ` tick. See [c](./in-span.md) and `x`.\n'), []);
+});
+
+test('inline links with an image, nested brackets or any title form are extracted', () => {
+  const badge = '[![License](https://img.shields.io/badge/License-MIT.svg)](./LICENSE)';
+  assert.deepEqual(relativeLinks(badge), ['./LICENSE']);
+  assert.deepEqual(relativeLinks('[![logo](./logo.png)](./home.md)'), ['./home.md', './logo.png']);
+  assert.deepEqual(relativeLinks('[see [1]](./nested.md)'), ['./nested.md']);
+  assert.deepEqual(relativeLinks(`[a](./sq.md 'Title') [b](./paren.md (Title)) [c](./dq.md "T")`), [
+    './sq.md',
+    './paren.md',
+    './dq.md',
+  ]);
+});
+
+test('reference definitions inside containers are extracted', () => {
+  assert.deepEqual(relativeLinks('> [d]: ./quote.md\n'), ['./quote.md']);
+  assert.deepEqual(relativeLinks('- item\n\n    [d]: ./deep.md\n'), ['./deep.md']);
+  assert.deepEqual(relativeLinks('[a]: ./one.md\n[b]: ./two.md "T"\n'), ['./one.md', './two.md']);
+});
+
+test('prose shaped like a reference definition is not one', () => {
+  assert.deepEqual(relativeLinks('[WIP]: finish later\n'), []);
+  assert.deepEqual(relativeLinks('[status:in-review]: means a Reviewer picks it up\n'), []);
+  assert.deepEqual(relativeLinks('Text line\n[d]: ./para-ref.md\n'), []);
+  assert.deepEqual(relativeLinks('> Quoted line\n> [d]: ./para-quote.md\n'), []);
+});
+
+test('a fence closes only on its own character, and an unclosed fence runs to the end', () => {
+  assert.deepEqual(relativeLinks('```\n[x](./in.md)\n```~~\n[y](./after.md)\n'), []);
+  assert.deepEqual(relativeLinks('```\n[x](./unclosed.md)\n'), []);
+  assert.deepEqual(relativeLinks('~~~\n[x](./in.md)\n```\n~~~~\n[y](./out.md)\n'), ['./out.md']);
+});
+
+test('percent-encoded targets are decoded before resolving', () =>
+  withRepo(async (root) => {
+    await writeFile(path.join(root, 'docs', 'with space.md'), '# Spaced\n');
+    await writeFile(path.join(root, 'docs', 'guide.md'), '[a](./with%20space.md) [b](./bad%zz.md)\n');
+    const { errors } = await checkRepo(root);
+    assert.deepEqual(errors, ['docs/guide.md: broken relative link -> ./bad%zz.md']);
+  }));
