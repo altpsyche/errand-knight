@@ -32,7 +32,8 @@ no root to escalate to.
 
 `$HOME` is also mounted read-only by DSH policy, even though its Unix permissions look writable. A
 command that writes `~/.gitconfig` or `~/.config/**` fails with `Read-only file system`. Configure git
-with `--local` (writes `<repo>/.git/config`, inside the workspace) and never `--global`.
+with `--local` (writes `<repo>/.git/config`, inside the workspace) and never `--global` from inside
+the sandbox. The one global setting this repo needs, below, is made once on the host.
 
 ## Git and GitHub from an agent session
 
@@ -40,7 +41,8 @@ with `--local` (writes `<repo>/.git/config`, inside the workspace) and never `--
 
 The system SSH config includes `/etc/ssh/ssh_config.d/*.conf`, and the whole include chain fails the
 ownership check above, so every git operation over SSH dies. `-F` makes `ssh` ignore the system-wide
-config entirely (per `ssh(1)`), which sidesteps the include. Set it **globally**:
+config entirely (per `ssh(1)`), which sidesteps the include. Set it **globally, in a normal terminal on
+the host**; from inside the sandbox this write fails with `Read-only file system`:
 
 ```bash
 git config --global core.sshCommand "ssh -F /dev/null"
