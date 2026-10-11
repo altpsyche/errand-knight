@@ -11,6 +11,9 @@ thinking model does not spend tokens on them. Dev tooling only, never app code
 | `triage.mjs` | The triage helper, `run(input, { client, root })`. `root` is the repo root the docs are read from; it defaults to this repo, and tests point it at a temp tree |
 | `triage-cli.mjs` | Its CLI |
 | `triage.test.mjs` | Tests at the `run()` seam with a fake client, plus CLI runs as a subprocess with a `gh` stub on PATH; run by `pnpm scripts:test` |
+| `prune.mjs` | The doc pruner, `run(input, { client, root })`, with `root` as in the triage helper |
+| `prune-cli.mjs` | Its CLI |
+| `prune.test.mjs` | Tests at its `run()` seam over a git repo built in a temp dir, plus CLI runs with a `gh` stub and a fake Jev server on localhost |
 
 ## Triage helper
 
@@ -56,6 +59,77 @@ label edit cannot drift out of sync with the tool:
 
 If either doc stops matching that shape, the tool prints an error line and exits 0.
 
+## Doc pruner
+
+Says which docs to read before working on a ticket or reviewing a PR. It prints a read list:
+`AGENTS.md` always first, then each ADR, spec, `docs/idea.md` section and co-located doc that Jev
+judges relevant to the work, in the order below. The agent reads those and skips the rest. It leans towards including, because missing a
+governing ADR costs far more than reading an extra doc.
+
+How the agent uses it is in [`/work`](../../.agents/skills/work/SKILL.md) § 3 and
+[`docs/workflow.md`](../../docs/workflow.md) §§ 2–3.
+
+```bash
+node scripts/jev/prune-cli.mjs 12                     # a PR, with `gh pr view`, falling back to `gh issue view`
+node scripts/jev/prune-cli.mjs 8 --json               # one JSON object instead
+gh pr view 12 --json title,body,files | node scripts/jev/prune-cli.mjs
+node scripts/jev/prune-cli.mjs < ticket.txt           # plain text: first non-blank line title, rest body
+pnpm run --silent jev:prune 12                        # the same, through pnpm
+```
+
+Default output, one doc a line, with ` § <heading>` for a `docs/idea.md` section:
+
+```text
+AGENTS.md
+docs/adr/0004-jev-dev-tooling-only.md
+docs/idea.md § 12. Open Questions
+scripts/jev/README.md
+```
+
+`--json` prints `{ status: "ok", read }`, where each entry is `{ path, heading?, reason, noul? }`
+and `reason` is `always` (AGENTS.md), `relevant` (with its noul) or `oversize` (see below); or
+`{ status: "skipped" | "error", reason }`.
+
+**What Jev sees.** The state is the work: its title, its body and the paths it changes (a PR's
+files; none for an issue). Never the diff, which would be large and would push documents out of
+the context limit. Each unit is one Noul question, "should an agent doing this work read this
+document?", carrying the unit's text. A unit is included at a noul at or above
+`PRUNE_INCLUDE_NOUL` (0.2).
+
+**The units**, found on every run so a new doc is judged without an edit here:
+
+- **Each ADR**: a tracked file matching `docs/adr/NNNN-*.md`.
+- **Each spec**: a tracked `.md` file under `docs/specs/`. A spec outranks `docs/idea.md` in
+  `AGENTS.md`'s precedence order, so it is judged like the sections below it.
+- **Each `docs/idea.md` section**: one per `#` or `##` heading, running to the next one, so the
+  title and intro form one unit and each numbered section (`## 5. Technical Architecture`) is one
+  unit with its `###` subsections inside it. That is the level the other docs cite ("idea.md §5"),
+  and a `###` subsection is often a few lines that mean little without its section. A heading
+  inside a code fence is not a heading.
+- **Each co-located `.md`**: a tracked `.md` file in a subdirectory, beside the code it describes,
+  except under `docs/`, under a dot-directory (`.agents/` skills, `.github/`) or under
+  `node_modules/`. Root files are not units: `AGENTS.md` is always on the list, and `README.md`
+  is the project's front page. Tracked means `git ls-files`: an untracked file is not
+  authoritative, and the rule keeps out build output and nested worktrees.
+
+The units are listed in that order, which is `AGENTS.md`'s precedence order. The rest of `docs/`
+is not judged, because it says how to work rather than what governs the code a ticket touches,
+and each file is already reached by name at the step that needs it. `docs/workflow.md` is the
+loop `/work` runs, `docs/dev_setup.md` is what `AGENTS.md` sends you to before anything
+system-level, and `docs/agents/*.md` is the skills' wiring: `issue-tracker.md` for `/work` and
+every tracker step, `triage-labels.md` for `/triage`, `domain.md` for the engineering skills.
+Pruning those would hide a step's instructions from the agent running that step, and listing them
+for every ticket would add the same docs to every list.
+
+**Batching.** The questions go in as few requests as Jev's limits allow: 64k tokens a request,
+and 32k for the state plus the longest question. Sizes are estimated at
+`JEV_CHARS_PER_TOKEN` (3) characters a token, which overestimates English, so an accepted batch
+fits. A unit too large for one question beside the state is put on the list without asking, with
+reason `oversize`. All the limits live in `constants.mjs`.
+
+If git or `docs/idea.md` cannot be read, or Jev leaves a unit unanswered, the tool prints an error
+line and exits 0, and the agent reads the docs as it would without the tool.
+
 ## Skip behaviour
 
 Every tool is optional. Without `TYPESAFE_API_KEY` in the environment, or without the SDK
@@ -64,9 +138,10 @@ installed (`pnpm install` not run), it makes no request, prints one line and exi
 
 ```text
 jev triage: skipped, TYPESAFE_API_KEY is not set; triage as normal
+jev prune: skipped, TYPESAFE_API_KEY is not set; read the docs as normal
 ```
 
-Any other failure prints one `jev triage: error, …` line and also exits 0: network, an API error,
+Any other failure prints one `jev <tool>: error, …` line and also exits 0: network, an API error,
 `gh` failing, a doc that no longer parses, or an issue with no title (such as empty stdin), which
 is never sent to Jev. Nothing here fails the caller's workflow; the caller carries on as it would
 without the tool. The key comes from the owner's shell only

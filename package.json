@@ -13,7 +13,8 @@
     "verify": "pnpm run skills:check && pnpm run scripts:test",
     "skills:check": "node scripts/check-skills.mjs",
     "scripts:test": "node --test \"scripts/**/*.test.mjs\"",
-    "jev:triage": "node scripts/jev/triage-cli.mjs"
+    "jev:triage": "node scripts/jev/triage-cli.mjs",
+    "jev:prune": "node scripts/jev/prune-cli.mjs"
   },
   "devDependencies": {
     "@typesafe-ai/sdk": "0.6.0"
