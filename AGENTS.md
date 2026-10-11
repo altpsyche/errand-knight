@@ -40,7 +40,7 @@ Fix the stale source in the same commit, or say plainly that you did not.
 
 ```bash
 pnpm verify           # everything CI runs
-pnpm skills:check     # skill frontmatter + AGENTS.md pointers, under a second
+pnpm skills:check     # skill frontmatter, doc links, CLAUDE.md symlink, under a second
 ```
 
 **Prefer running these over reasoning about whether your change is correct.** Phase 0 extends

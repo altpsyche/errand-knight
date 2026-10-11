@@ -134,7 +134,7 @@ CI runs on Ubuntu, whose package names differ (`libwebkit2gtk-4.1-dev`, `libappi
 ## Verification commands
 
 ```bash
-pnpm skills:check     # agent layer: skill frontmatter, pointers, AGENTS.md budget
+pnpm skills:check     # agent layer: skill frontmatter, doc links, CLAUDE.md symlink, AGENTS.md budget
 pnpm verify           # everything CI runs today
 ```
 
