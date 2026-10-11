@@ -23,6 +23,8 @@ the GitHub issue wins.
 - **Open a PR**: `git push -u origin HEAD` then
   `gh pr create --title "..." --body-file <file> --label status:in-review`. The body contains
   `Closes #<number>` so merging closes the issue.
+- **Check out a PR for review**: `git fetch origin` then `gh pr checkout <number>`. Use
+  `origin/main`, not `main`, as the fixed point.
 - **Post a review**: `gh pr comment <number> --body-file <file>`, then
   `gh pr edit <number> --remove-label status:in-review --add-label status:changes-requested` (or
   `status:approved` when the report has zero open findings). GitHub forbids approving your own PR and every session is the owner's account,
