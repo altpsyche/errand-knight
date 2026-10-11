@@ -48,7 +48,7 @@ workflow here; the steps below are the glue the skills themselves do not do. Com
 1. **Claim**, as the first write after confirmation: assign yourself and comment
    `Claimed: branch <n>-<slug>`. Every session runs as the owner's account, so the comment, not
    the assignee, is what tells two sessions apart.
-2. **Branch** from an up-to-date `main` as `<n>-<slug>`. Never commit to `main`.
+2. **Branch** from a freshly fetched `origin/main` as `<n>-<slug>`. Never commit to `main`.
 3. `/implement`, driving `/tdd` at the seams agreed up front. Its closing `/review-pr` is a
    self-check: fix what it finds, but it is not the review. A review by the author is not a review.
 4. **Open the PR**: push, then create it with a body written by `/pr` that contains `Closes #<n>`,

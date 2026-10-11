@@ -20,6 +20,8 @@ the GitHub issue wins.
 - **Claim**: `gh issue edit <number> --add-assignee @me` then
   `gh issue comment <number> --body "Claimed: branch <number>-<slug>"`. Every session shares the
   owner's account, so the comment is the claim; the assignee only hides the issue from the frontier.
+- **Branch**: `git fetch origin` then `git switch -c <number>-<slug> origin/main`. Branch from
+  `origin/main`, not a local `main` that may be stale.
 - **Open a PR**: `git push -u origin HEAD` then
   `gh pr create --title "..." --body-file <file> --label status:in-review`. The body contains
   `Closes #<number>` so merging closes the issue.
