@@ -69,7 +69,7 @@ function parseFrontmatter(source, label, { err }) {
 // template placeholder. Fenced and inline code are stripped first: links there are examples.
 export function relativeLinks(markdown) {
   const out = [];
-  const prose = markdown.replace(/^(```|~~~)[^\n]*\n[\s\S]*?^\1[^\n]*$/gm, '').replace(/`[^`\n]*`/g, '');
+  const prose = markdown.replace(/^[ \t]*(```|~~~)[^\n]*\n[\s\S]*?^[ \t]*\1[^\n]*$/gm, '').replace(/`[^`\n]*`/g, '');
   for (const match of prose.matchAll(/\[[^\]]*\]\(([^)\s]+)(?:\s+"[^"]*")?\)/g)) {
     const target = match[1];
     if (/^[a-z][a-z0-9+.-]*:/i.test(target)) continue;
@@ -131,7 +131,7 @@ async function checkSkill(skillsDir, skillName, { err, warn }) {
 
 export function insideRoot(root, p) {
   const rel = path.relative(root, p);
-  return rel !== '' && !rel.startsWith('..') && !path.isAbsolute(rel);
+  return !rel.startsWith('..') && !path.isAbsolute(rel);
 }
 
 async function markdownFiles(dir) {
@@ -168,16 +168,17 @@ export async function checkRepo(root) {
   const err = (msg) => errors.push(msg);
   const warn = (msg) => warnings.push(msg);
 
-  if (!existsSync(skillsDir)) {
-    err('.agents/skills/ does not exist');
-    return { skillCount: 0, errors, warnings };
-  }
-  const skillNames = (await readdir(skillsDir, { withFileTypes: true }))
-    .filter((e) => e.isDirectory())
-    .map((e) => e.name)
-    .sort();
+  // A missing skills folder is one error, not a reason to skip the checks that follow.
+  const hasSkills = existsSync(skillsDir);
+  if (!hasSkills) err('.agents/skills/ does not exist');
+  const skillNames = hasSkills
+    ? (await readdir(skillsDir, { withFileTypes: true }))
+        .filter((e) => e.isDirectory())
+        .map((e) => e.name)
+        .sort()
+    : [];
 
-  if (skillNames.length === 0) err('.agents/skills/ contains no skill folders');
+  if (hasSkills && skillNames.length === 0) err('.agents/skills/ contains no skill folders');
 
   for (const name of skillNames) await checkSkill(skillsDir, name, { err, warn });
 
@@ -208,9 +209,9 @@ export async function checkRepo(root) {
   for (const file of linked) if (existsSync(file)) await checkLinks(root, file, { err });
 
   // Every skill must be indexed in the skills README, so none is silently unreachable.
-  if (!existsSync(skillsReadme)) {
+  if (hasSkills && !existsSync(skillsReadme)) {
     err('.agents/skills/README.md does not exist');
-  } else {
+  } else if (hasSkills) {
     const readme = await readFile(skillsReadme, 'utf8');
     for (const name of skillNames) {
       if (!readme.includes(`./${name}/`) && !readme.includes(`${name}/SKILL.md`)) {

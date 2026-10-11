@@ -94,7 +94,31 @@ test('links with a scheme or a bare anchor are ignored; anchors are stripped', (
 });
 
 test('insideRoot rejects parents and prefix-sharing siblings', () => {
+  assert.equal(insideRoot('/r/repo', '/r/repo'), true);
   assert.equal(insideRoot('/r/repo', '/r/repo/docs/a.md'), true);
   assert.equal(insideRoot('/r/repo', '/r/repo-x/a.md'), false);
   assert.equal(insideRoot('/r/repo', '/r/a.md'), false);
 });
+
+test('links inside a fence indented under a list item are ignored', () => {
+  const md = '1. Step:\n\n   ```ts\n   [a](./indented.md)\n   ```\n';
+  assert.deepEqual(relativeLinks(md), []);
+});
+
+test('a link to the repo root resolves', () =>
+  withRepo(async (root) => {
+    await writeFile(path.join(root, 'docs', 'guide.md'), '[repo](../)\n');
+    const { errors } = await checkRepo(root);
+    assert.deepEqual(errors, []);
+  }));
+
+test('a missing skills folder does not hide the other checks', () =>
+  withRepo(async (root) => {
+    await rm(path.join(root, '.agents'), { recursive: true });
+    await writeFile(path.join(root, 'docs', 'guide.md'), '[gone](./nope.md)\n');
+    const { errors } = await checkRepo(root);
+    assert.deepEqual(errors, [
+      '.agents/skills/ does not exist',
+      'docs/guide.md: broken relative link -> ./nope.md',
+    ]);
+  }));
