@@ -6,7 +6,8 @@ model, in every harness, reads the same version.
 
 - **Every harness**, including Claude Code and the DeepSeek Harness (DSH), starts at the root
   `AGENTS.md`, which points at this folder. A skill is used by reading its `SKILL.md` and
-  following it. There is deliberately no `.claude/` folder.
+  following it; `/name` in any doc is shorthand for exactly that. There is deliberately no
+  `.claude/` folder, and no harness-specific wiring of any kind: every agent takes the same path.
 - DSH discovers these skills automatically and injects each `description` into context, so no
   registration step is needed.
 
@@ -38,9 +39,10 @@ pinned commit above.
 
 ## Local changes — re-apply after updating from upstream
 
-1. `engineering/code-review` is vendored as **`review-pr`**, so it never collides with Claude
-   Code's built-in `/code-review`. The rename is applied to the frontmatter `name`, the
-   `agents/openai.yaml` display name, and the cross-references in `implement` and `tdd`.
+1. `engineering/code-review` is vendored as **`review-pr`**, which says what it reviews and is not
+   mistaken for the built-in review commands some harnesses ship. The rename is applied to the
+   frontmatter `name`, the `agents/openai.yaml` display name, and the cross-references in
+   `implement` and `tdd`.
 
 Everything else is byte-identical to upstream. This repo uses lowercase `docs/`, `docs/adr/`,
 `docs/agents/`, and `GLOSSARY.md`, which are the upstream defaults, so **no path rewrites are

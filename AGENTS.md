@@ -13,6 +13,8 @@ opt-in, off by default, and uses a key the user supplies. These are the product,
 > **Stay under 200 lines** — this loads into every session. Detail belongs in a co-located `.md`.
 > **Session start:** owner says "let's work" / "next" / "review" with no ticket → follow
 > [`.agents/skills/work/SKILL.md`](.agents/skills/work/SKILL.md).
+> **Skills:** `/name` anywhere in this repo means read `.agents/skills/name/SKILL.md` and follow it.
+> No harness registers them as commands; every agent, Claude included, reads the file.
 > **Pre-code:** Phase 0 has not landed. [`docs/idea.md`](docs/idea.md) is the product source of truth,
 > and the layout below is the plan, not a description of files on disk.
 
