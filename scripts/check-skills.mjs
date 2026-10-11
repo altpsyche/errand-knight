@@ -131,7 +131,7 @@ async function checkSkill(skillsDir, skillName, { err, warn }) {
 
 export function insideRoot(root, p) {
   const rel = path.relative(root, p);
-  return !rel.startsWith('..') && !path.isAbsolute(rel);
+  return rel !== '..' && !rel.startsWith(`..${path.sep}`) && !path.isAbsolute(rel);
 }
 
 async function markdownFiles(dir) {

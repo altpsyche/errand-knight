@@ -100,6 +100,7 @@ test('insideRoot rejects parents and prefix-sharing siblings', () => {
   assert.equal(insideRoot('/r/repo', '/r/repo/docs/a.md'), true);
   assert.equal(insideRoot('/r/repo', '/r/repo-x/a.md'), false);
   assert.equal(insideRoot('/r/repo', '/r/a.md'), false);
+  assert.equal(insideRoot('/r/repo', '/r/repo/..notes/a.md'), true);
 });
 
 test('links inside a fence indented under a list item are ignored', () => {
