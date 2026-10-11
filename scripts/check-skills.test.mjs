@@ -211,3 +211,12 @@ test('CRLF and CR line endings close fences and end reference definitions', () =
   assert.deepEqual(relativeLinks('[a]: ./crlf-ref.md\r\n'), ['./crlf-ref.md']);
   assert.deepEqual(relativeLinks('~~~\rcode\r~~~\r[b]: ./cr-ref.md\r'), ['./cr-ref.md']);
 });
+
+test('a block-scalar description is read, as upstream skills write it', () =>
+  withRepo(async (root) => {
+    const skill = '---\nname: demo\ndescription: >\n  Fetch the thing.\n  Use when testing the checker.\n---\n\nBody.\n';
+    await writeFile(path.join(root, '.agents', 'skills', 'demo', 'SKILL.md'), skill);
+    const { errors, warnings } = await checkRepo(root);
+    assert.deepEqual(errors, []);
+    assert.deepEqual(warnings, []);
+  }));

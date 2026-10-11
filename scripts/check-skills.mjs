@@ -24,8 +24,9 @@ const KNOWN_FRONTMATTER_KEYS = new Set([
   'allowed-tools',
 ]);
 
-// Minimal YAML frontmatter reader. Handles the flat `key: value` shape these skills use, plus
-// block scalars and nested maps, which it skips rather than mis-parses.
+// Minimal YAML frontmatter reader. Handles the flat `key: value` shape these skills use, block
+// scalars (`|` keeps line breaks, `>` folds them to spaces), and nested maps, which it skips rather
+// than mis-parses.
 function parseFrontmatter(source, label, { err }) {
   if (!source.startsWith('---\n') && !source.startsWith('---\r\n')) {
     err(`${label}: missing YAML frontmatter (file must start with ---)`);
@@ -39,14 +40,27 @@ function parseFrontmatter(source, label, { err }) {
   const raw = source.slice(source.indexOf('\n') + 1, end);
   const fields = {};
   let currentKey = null;
+  let block = null; // the style and lines of the block scalar being read, if any
+  const endBlock = () => {
+    if (block) fields[block.key] = block.lines.join(block.style === '>' ? ' ' : '\n').trim();
+    block = null;
+  };
   for (const line of raw.split('\n')) {
+    if (block && /^\s+\S/.test(line)) {
+      block.lines.push(line.trim());
+      continue;
+    }
     if (!line.trim() || line.trimStart().startsWith('#')) continue;
     const topLevel = /^([A-Za-z][\w-]*):(.*)$/.exec(line);
     if (topLevel) {
+      endBlock();
       currentKey = topLevel[1];
       let value = topLevel[2].trim();
-      if (value === '' || value === '|' || value === '>') {
-        fields[currentKey] = undefined; // nested or block scalar; presence is what matters
+      const blockStyle = /^([|>])[+-]?$/.exec(value);
+      if (blockStyle) {
+        block = { key: currentKey, style: blockStyle[1], lines: [] };
+      } else if (value === '') {
+        fields[currentKey] = undefined; // nested map; presence is what matters
       } else {
         if (
           (value.startsWith('"') && value.endsWith('"') && value.length > 1) ||
@@ -62,6 +76,7 @@ function parseFrontmatter(source, label, { err }) {
       fields[currentKey] = fields[currentKey] ?? null;
     }
   }
+  endBlock();
   return fields;
 }
 
