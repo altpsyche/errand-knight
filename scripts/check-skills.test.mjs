@@ -1,11 +1,13 @@
 // Tests for check-skills.mjs. Each case builds a minimal repo in a temp dir, so a check is proven
 // to fire on a real tree rather than on a mocked filesystem.
 
+import { spawnSync } from 'node:child_process';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { mkdtemp, mkdir, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { checkRepo, insideRoot, relativeLinks } from './check-skills.mjs';
 
 const SKILL = `---
@@ -122,3 +124,15 @@ test('a missing skills folder does not hide the other checks', () =>
       'docs/guide.md: broken relative link -> ./nope.md',
     ]);
   }));
+
+test('running the checker through a symlinked path still runs it', async () => {
+  const dir = await mkdtemp(path.join(tmpdir(), 'check-skills-link-'));
+  try {
+    const scripts = path.dirname(fileURLToPath(import.meta.url));
+    await symlink(scripts, path.join(dir, 'scripts'));
+    const run = spawnSync(process.execPath, [path.join(dir, 'scripts', 'check-skills.mjs')], { encoding: 'utf8' });
+    assert.match(run.stdout, /agent layer: \d+ skills/);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});

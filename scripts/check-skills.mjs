@@ -8,7 +8,7 @@
 // `checkRepo(root)` is exported for check-skills.test.mjs; running the file checks this repo.
 
 import { lstat, readFile, readdir, readlink } from 'node:fs/promises';
-import { existsSync } from 'node:fs';
+import { existsSync, realpathSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -237,4 +237,6 @@ async function main() {
   process.exit(errors.length ? 1 : 0);
 }
 
-if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) await main();
+// Node reports the main module by its realpath, so argv[1] must be resolved the same way. Without
+// that, a run through a symlinked path never calls main() and exits 0 having checked nothing.
+if (process.argv[1] && realpathSync(process.argv[1]) === fileURLToPath(import.meta.url)) await main();
