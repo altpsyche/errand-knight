@@ -23,6 +23,10 @@ the GitHub issue wins.
 - **Open a PR**: `git push -u origin HEAD` then
   `gh pr create --title "..." --body-file <file> --label status:in-review`. The body contains
   `Closes #<number>` so merging closes the issue.
+- **Post a review**: `gh pr comment <number> --body-file <file>`, then
+  `gh pr edit <number> --remove-label status:in-review --add-label status:changes-requested` (or
+  `status:approved`). GitHub forbids approving your own PR and every session is the owner's account,
+  so the label, not a GitHub review, carries the verdict.
 
 `gh` infers the repo from `git remote -v` when run inside the clone.
 

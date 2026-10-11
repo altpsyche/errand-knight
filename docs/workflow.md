@@ -61,18 +61,21 @@ made stale is corrected in the same commit, and a PR whose body says `Closes #<n
 
 ### 3. Review (Reviewer) — `/review-pr`
 
-Two axes, run as parallel sub-agents and reported side by side:
+Run by a session that did not write the diff. Two axes, run as parallel sub-agents and reported side
+by side:
 
 - **Standards** — does the diff follow `AGENTS.md`, `docs/workflow.md`'s checklist below, and the ADRs?
 - **Spec** — does it faithfully implement the originating spec, no more and no less?
 
-The reviewer posts findings; it does not push to the branch. Every finding names its source and quotes
-the line it is about.
+The reviewer posts the report as a PR comment and sets `status:changes-requested` or `status:approved`;
+it does not push to the branch. Every finding names its source and quotes the line it is about. The
+Implementer's own `/review-pr` run at the end of `/implement` is a self-check, not this step.
 
 ### 4. Fix rounds
 
 The implementer addresses findings on the same branch. A finding may be disputed, with a reason and a
 source; "it works" is not a dispute. Scope creep found in review becomes a new ticket, not a bigger diff.
+When the round is done, swap `status:changes-requested` back to `status:in-review`.
 
 ### 5. Merge and learn (Owner)
 

@@ -100,9 +100,10 @@ Adding a system requires an ADR. An ADR outranks code docs and outranks this fil
 ## Working Agreement
 
 - **Roles — [`docs/workflow.md`](docs/workflow.md).** One ticket → one branch + PR. The reviewer
-  suggests fixes and never edits the branch; the owner merges. Implementer → `/implement` driving
-  `/tdd` at seams agreed up front, closing with `/review-pr`. Planner → `/grill-with-docs`, then
-  `/to-spec` and `/to-tickets`. Queue and session start → `/work`.
+  is a different session from the author, posts findings on the PR, and never edits the branch; the
+  owner merges. Implementer → `/implement` driving `/tdd` at seams agreed up front, then a PR labelled
+  `status:in-review`. Planner → `/grill-with-docs`, then `/to-spec` and `/to-tickets`. Queue and
+  session start → `/work`.
 - **Update the co-located `.md` in the same commit** as the code, and update the issue. Do not batch
   either to the end of a sprint.
 - **One concern per commit** — do not mix a refactor with a feature.
