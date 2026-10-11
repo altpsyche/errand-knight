@@ -31,6 +31,13 @@ test('applies both labels when Jev is confident', async () => {
     role: { label: 'ready-for-agent', confidence: 0.93, decision: 'apply' },
     phase: { label: 'phase:0', confidence: 0.85, decision: 'apply' },
   });
+  // One request carries both questions, as Choices, over the issue's title and body.
+  assert.equal(client.calls.length, 1);
+  const [request] = client.calls;
+  assert.deepEqual(request.state, { issue: ISSUE });
+  assert.deepEqual(Object.keys(request.questions).sort(), ['phase', 'role']);
+  assert.equal(request.questions.role.type, 'choice');
+  assert.equal(request.questions.phase.type, 'choice');
 });
 
 test('defers a label below the threshold and applies one exactly at it', async () => {
@@ -101,6 +108,7 @@ test('reports a failed request as one error line with the key redacted', async (
   const decision = await run(ISSUE, { client });
   assert.equal(decision.status, 'error');
   assert.equal(sent.length, 1);
+  assert.equal(sent[0].model, 'jev-1.13.0', 'the request names the pinned model, never jev-latest');
   assert.ok(!decision.reason.includes(KEY), `key leaked: ${decision.reason}`);
   assert.ok(!decision.reason.includes('\n'), 'reason is more than one line');
 });
