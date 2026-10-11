@@ -24,9 +24,26 @@ const KNOWN_FRONTMATTER_KEYS = new Set([
   'allowed-tools',
 ]);
 
-// Minimal YAML frontmatter reader. Handles the flat `key: value` shape these skills use, plus
-// block scalars and nested maps, which it skips rather than mis-parses.
-function parseFrontmatter(source, label, { err }) {
+// A block-scalar header: style, then an optional chomping and indentation indicator in either
+// order, then an optional comment, as in `>`, `|-`, `>2`, `|+1` or `> # note`.
+const BLOCK_HEADER = /^([|>])(?:[1-9][+-]?|[+-][1-9]?)?(?:[ \t]+#.*)?$/;
+
+// YAML line folding for a `>` block: a break between two text lines becomes a space, and each
+// blank line becomes a break. More-indented lines are not special-cased: the reader trims indentation.
+function fold(lines) {
+  let out = '';
+  lines.forEach((line, i) => {
+    if (line === '') out += '\n';
+    else out += (i > 0 && lines[i - 1] !== '' ? ' ' : '') + line;
+  });
+  return out;
+}
+
+// Minimal YAML frontmatter reader. Handles the flat `key: value` shape these skills use, block
+// scalars (`|` keeps line breaks and blank lines, `>` folds them as `fold` does; indentation and
+// surrounding blank lines are trimmed), and nested maps, which it skips rather than mis-parses.
+// Exported for check-skills.test.mjs.
+export function parseFrontmatter(source, label, { err }) {
   if (!source.startsWith('---\n') && !source.startsWith('---\r\n')) {
     err(`${label}: missing YAML frontmatter (file must start with ---)`);
     return null;
@@ -39,14 +56,27 @@ function parseFrontmatter(source, label, { err }) {
   const raw = source.slice(source.indexOf('\n') + 1, end);
   const fields = {};
   let currentKey = null;
+  let block = null; // the style and lines of the block scalar being read, if any
+  const endBlock = () => {
+    if (block) fields[block.key] = (block.style === '>' ? fold(block.lines) : block.lines.join('\n')).trim();
+    block = null;
+  };
   for (const line of raw.split('\n')) {
+    if (block && (/^\s+\S/.test(line) || !line.trim())) {
+      block.lines.push(line.trim());
+      continue;
+    }
     if (!line.trim() || line.trimStart().startsWith('#')) continue;
     const topLevel = /^([A-Za-z][\w-]*):(.*)$/.exec(line);
     if (topLevel) {
+      endBlock();
       currentKey = topLevel[1];
       let value = topLevel[2].trim();
-      if (value === '' || value === '|' || value === '>') {
-        fields[currentKey] = undefined; // nested or block scalar; presence is what matters
+      const blockStyle = BLOCK_HEADER.exec(value);
+      if (blockStyle) {
+        block = { key: currentKey, style: blockStyle[1], lines: [] };
+      } else if (value === '') {
+        fields[currentKey] = undefined; // nested map; presence is what matters
       } else {
         if (
           (value.startsWith('"') && value.endsWith('"') && value.length > 1) ||
@@ -62,6 +92,7 @@ function parseFrontmatter(source, label, { err }) {
       fields[currentKey] = fields[currentKey] ?? null;
     }
   }
+  endBlock();
   return fields;
 }
 

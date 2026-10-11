@@ -8,7 +8,7 @@ import { mkdtemp, mkdir, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { checkRepo, insideRoot, relativeLinks } from './check-skills.mjs';
+import { checkRepo, insideRoot, parseFrontmatter, relativeLinks } from './check-skills.mjs';
 
 const SKILL = `---
 name: demo
@@ -210,4 +210,33 @@ test('CRLF and CR line endings close fences and end reference definitions', () =
   assert.deepEqual(relativeLinks('```\r\ncode\r\n```\r\n[a](./after-fence.md)\r\n'), ['./after-fence.md']);
   assert.deepEqual(relativeLinks('[a]: ./crlf-ref.md\r\n'), ['./crlf-ref.md']);
   assert.deepEqual(relativeLinks('~~~\rcode\r~~~\r[b]: ./cr-ref.md\r'), ['./cr-ref.md']);
+});
+
+test('a block-scalar description is read, as upstream skills write it', () =>
+  withRepo(async (root) => {
+    const skill = '---\nname: demo\ndescription: >\n  Fetch the thing.\n  Use when testing the checker.\n---\n\nBody.\n';
+    await writeFile(path.join(root, '.agents', 'skills', 'demo', 'SKILL.md'), skill);
+    const { errors, warnings } = await checkRepo(root);
+    assert.deepEqual(errors, []);
+    assert.deepEqual(warnings, []);
+  }));
+
+test('block-scalar headers with an indentation indicator or a comment are read', async () => {
+  for (const header of ['>2', '>-2', '|2-', '|+', '> # note', '|-1 # note']) {
+    await withRepo(async (root) => {
+      const skill = `---\nname: demo\ndescription: ${header}\n  Use when testing the checker.\n---\n\nBody.\n`;
+      await writeFile(path.join(root, '.agents', 'skills', 'demo', 'SKILL.md'), skill);
+      const { errors, warnings } = await checkRepo(root);
+      assert.deepEqual({ header, errors, warnings }, { header, errors: [], warnings: [] });
+    });
+  }
+});
+
+test('blank lines inside a block scalar are kept: `|` as breaks, `>` as folded breaks', () => {
+  const read = (header) =>
+    parseFrontmatter(`---\ndescription: ${header}\n  one\n  two\n\n  three\n\n\n  four\nname: demo\n---\n`, 'x', {
+      err: assert.fail,
+    }).description;
+  assert.equal(read('|'), 'one\ntwo\n\nthree\n\n\nfour');
+  assert.equal(read('>'), 'one two\nthree\n\nfour');
 });

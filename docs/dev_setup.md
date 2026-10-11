@@ -104,6 +104,19 @@ ls -l /etc/ssh/ssh_config.d/         # should read root root
 
 If SSH fails **there** too, it is a genuine host problem and the sandbox diagnosis above does not apply.
 
+## The TypeSafe dev key
+
+The dev tooling planned in the spec #4 will call TypeSafe's Jev model to cut agent cost, and only
+that tooling will ([ADR-0004](adr/0004-jev-dev-tooling-only.md)). None of it exists yet: it lands
+in the tickets cut from #4. It will read its key from `TYPESAFE_API_KEY`:
+
+- **Owner's shell only.** Export it in your own shell profile, outside the repo. It is never
+  committed, never written to a file in the workspace, and never added as a CI secret.
+- **Development credits only.** The key pays for agent tooling on this repo, nothing the app does.
+- **Optional.** An agent without the key, which includes every contributor, fork and CI run, will
+  skip each live Jev call, say so in one line, and carry on with the normal workflow. Nothing will
+  fail for want of it.
+
 ## Phase 0 prerequisites
 
 Measured on this machine (CachyOS, Arch-based) on 2026-10-11. Everything Tauri v2 needs on Linux is

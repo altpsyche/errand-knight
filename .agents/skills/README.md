@@ -24,6 +24,11 @@ the skills read lives in [`docs/agents/`](../../docs/agents/).
 "let's work". It picks the role, picks the next item from the tracker, confirms with the owner,
 then hands off to the skills above.
 
+**From TypeSafe (not mattpocock):** [`typesafe-ai`](./typesafe-ai/SKILL.md), the reference for
+TypeSafe's API and its Jev model, used only to build the repo's dev tooling. Its description says
+"use when a feature needs…", but Jev never goes into app code:
+[ADR-0004](../../docs/adr/0004-jev-dev-tooling-only.md) fences it to dev tooling.
+
 ## Deliberately left out
 
 Trimmed to keep context load down. Any of these can be vendored later by re-copying from the
@@ -47,3 +52,23 @@ pinned commit above.
 Everything else is byte-identical to upstream. This repo uses lowercase `docs/`, `docs/adr/`,
 `docs/agents/`, and `GLOSSARY.md`, which are the upstream defaults, so **no path rewrites are
 needed**. Keep it that way: a capitalised `Docs/` would reintroduce a rewrite on every update.
+
+## TypeSafe skill
+
+Vendored from [typesafe-ai/skills](https://github.com/typesafe-ai/skills) (MIT) at commit
+`65a39f393687675ce170e6094757de20370365b9`: every file under `skills/typesafe-ai/` (`SKILL.md` and
+`LICENSE`), copied to [`typesafe-ai/`](./typesafe-ai/SKILL.md). **No local changes**: both files are
+byte-identical to upstream, so an update is a re-copy, never a merge. It is deliberately not
+installed through the Claude plugin or `npx skills`; both are harness-specific.
+
+To update, pick the new commit `<sha>`, then for each file the upstream tree lists:
+
+```bash
+gh api "repos/typesafe-ai/skills/git/trees/<sha>?recursive=1" \
+  --jq '.tree[] | select(.path | startswith("skills/typesafe-ai/")) | [.path, .sha] | @tsv'
+gh api "repos/typesafe-ai/skills/contents/skills/typesafe-ai/<file>?ref=<sha>" --jq .content \
+  | base64 -d > .agents/skills/typesafe-ai/<file>
+git hash-object .agents/skills/typesafe-ai/<file>   # must equal the blob sha the tree listed
+```
+
+Then update the pin in this section, and run `pnpm skills:check`.
